@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fffaf6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Nurture" />
+    <title>Nurture · Feeding Timer</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <a class="brand" href="#" aria-label="Nurture home">
+          <span class="brand-mark"><span></span><span></span><span></span></span>
+          nurture
+        </a>
+        <button class="more-button" aria-label="More options">•••</button>
+      </header>
+
+      <section class="intro" aria-labelledby="page-title">
+        <p id="greeting" class="eyebrow">GOOD MORNING</p>
+        <h1 id="page-title">Feeding rhythm</h1>
+        <p class="intro-copy">A gentle little helper for keeping track of what comes next.</p>
+      </section>
+
+      <section class="timer-card" aria-live="polite">
+        <div class="timer-card-top">
+          <span class="status-dot"></span>
+          <p id="timer-label">NEXT FEEDING IN</p>
+          <button id="edit-time" class="text-button" type="button">Edit</button>
+        </div>
+        <p id="countdown" class="countdown">--:--</p>
+        <div class="next-time-row">
+          <span class="sun-icon" aria-hidden="true">☀</span>
+          <span id="next-time">Set your first feeding</span>
+        </div>
+        <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
+        <p id="progress-copy" class="progress-copy">Ready when you are</p>
+      </section>
+
+      <section class="primary-action">
+        <button id="feed-now" class="feed-button" type="button">
+          <span class="button-bottle" aria-hidden="true">⌁</span>
+          <span>Log feeding now</span>
+          <span class="button-arrow" aria-hidden="true">→</span>
+        </button>
+        <p id="last-fed" class="last-fed">No feeding logged yet</p>
+      </section>
+
+      <section class="settings-card" aria-labelledby="settings-title">
+        <div class="settings-heading">
+          <div>
+            <p class="eyebrow">YOUR ROUTINE</p>
+            <h2 id="settings-title">Feeding interval</h2>
+          </div>
+          <div class="interval-readout"><span id="interval-value">3</span> hrs</div>
+        </div>
+
+        <div class="interval-options" role="radiogroup" aria-label="Feeding interval">
+          <button class="interval-option" data-hours="2" role="radio" aria-checked="false" type="button">2 hrs</button>
+          <button class="interval-option active" data-hours="3" role="radio" aria-checked="true" type="button">3 hrs</button>
+          <button class="interval-option" data-hours="4" role="radio" aria-checked="false" type="button">4 hrs</button>
+          <button class="interval-option" data-hours="5" role="radio" aria-checked="false" type="button">5 hrs</button>
+        </div>
+
+        <div class="custom-row">
+          <label for="custom-hours">Or choose your own</label>
+          <div class="custom-input-wrap">
+            <input id="custom-hours" type="number" min="0.25" max="24" step="0.25" inputmode="decimal" aria-label="Custom interval in hours" />
+            <span>hours</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="tip-card">
+        <span class="tip-icon" aria-hidden="true">✦</span>
+        <p><strong>A little reassurance</strong>Babies' feeding patterns can shift day to day. This is here to support your rhythm, not rush it.</p>
+      </section>
+
+      <footer><span>Made for the tender moments</span><span class="footer-heart">♡</span></footer>
+    </main>
+
+    <dialog id="time-dialog" class="time-dialog">
+      <form method="dialog" id="time-form">
+        <button class="close-dialog" value="cancel" aria-label="Close">×</button>
+        <p class="eyebrow">LOG A FEEDING</p>
+        <h2>When did feeding start?</h2>
+        <label for="feeding-time">Time</label>
+        <input id="feeding-time" type="datetime-local" required />
+        <button id="save-time" class="dialog-save" value="default">Save feeding</button>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>

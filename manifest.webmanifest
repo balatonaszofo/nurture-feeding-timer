@@ -1,0 +1,12 @@
+{
+  "name": "Nurture Feeding Timer",
+  "short_name": "Nurture",
+  "description": "A gentle feeding reminder for your baby's rhythm.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fffaf6",
+  "theme_color": "#fffaf6",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
