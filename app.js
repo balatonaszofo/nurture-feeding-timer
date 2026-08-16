@@ -5,6 +5,10 @@ let lastFeeding = state.lastFeeding ? new Date(state.lastFeeding) : null;
 
 const $ = (selector) => document.querySelector(selector);
 const countdown = $("#countdown");
+const countdownDuration = $("#countdown-duration");
+const countdownMessage = $("#countdown-message");
+const countdownHours = $("#countdown-hours");
+const countdownMinutes = $("#countdown-minutes");
 const nextTime = $("#next-time");
 const lastFed = $("#last-fed");
 const timerLabel = $("#timer-label");
@@ -12,16 +16,33 @@ const progressBar = $("#progress-bar");
 const progressCopy = $("#progress-copy");
 const dialog = $("#time-dialog");
 const timeInput = $("#feeding-time");
+const installDialog = $("#install-dialog");
+const installButton = $("#install-app");
+let installPrompt = null;
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ intervalHours, lastFeeding: lastFeeding?.toISOString() || null }));
 }
 
-function formatDuration(ms) {
+function getDurationParts(ms) {
   const totalMinutes = Math.max(0, Math.ceil(ms / 60000));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 };
+}
+
+function showDuration(ms) {
+  const { hours, minutes } = getDurationParts(ms);
+  countdownDuration.hidden = false;
+  countdownMessage.hidden = true;
+  countdownHours.textContent = hours;
+  countdownMinutes.textContent = String(minutes).padStart(2, "0");
+  countdown.setAttribute("aria-label", `${hours} ${hours === 1 ? "hour" : "hours"} and ${minutes} ${minutes === 1 ? "minute" : "minutes"} until the next feeding`);
+}
+
+function showCountdownMessage(message) {
+  countdownDuration.hidden = true;
+  countdownMessage.hidden = false;
+  countdownMessage.textContent = message;
+  countdown.setAttribute("aria-label", message);
 }
 
 function formatTime(date) {
@@ -38,7 +59,6 @@ function setGreeting() {
 }
 
 function render() {
-  const value = document.activeElement !== $("#custom-hours") ? "" : $("#custom-hours").value;
   $("#interval-value").textContent = intervalHours % 1 ? intervalHours : Math.round(intervalHours);
   if (document.activeElement !== $("#custom-hours")) $("#custom-hours").value = [2, 3, 4, 5].includes(intervalHours) ? "" : intervalHours;
   document.querySelectorAll(".interval-option").forEach(button => {
@@ -47,7 +67,11 @@ function render() {
     button.setAttribute("aria-checked", active);
   });
   if (!lastFeeding || Number.isNaN(lastFeeding.getTime())) {
-    countdown.textContent = "--:--";
+    countdownDuration.hidden = false;
+    countdownMessage.hidden = true;
+    countdownHours.textContent = "--";
+    countdownMinutes.textContent = "--";
+    countdown.setAttribute("aria-label", "No feeding scheduled");
     nextTime.textContent = "Set your first feeding";
     lastFed.textContent = "No feeding logged yet";
     timerLabel.textContent = "NEXT FEEDING IN";
@@ -62,13 +86,13 @@ function render() {
   const elapsed = now - lastFeeding;
   lastFed.textContent = `Last feeding: ${formatDateTime(lastFeeding)}`;
   if (remaining <= 0) {
-    countdown.textContent = "It's time";
+    showCountdownMessage("It's time");
     nextTime.textContent = `Was due at ${formatTime(due)}`;
     timerLabel.textContent = "NEXT FEEDING";
     progressBar.style.width = "100%";
     progressCopy.textContent = "Whenever baby is ready";
   } else {
-    countdown.textContent = formatDuration(remaining);
+    showDuration(remaining);
     nextTime.textContent = `Next feeding around ${formatTime(due)}`;
     timerLabel.textContent = "NEXT FEEDING IN";
     progressBar.style.width = `${Math.min(100, Math.max(0, elapsed / intervalMs * 100))}%`;
@@ -112,8 +136,51 @@ $("#custom-hours").addEventListener("change", (event) => {
   } else render();
 });
 
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function markInstalled() {
+  installButton.textContent = "Added to Home Screen";
+  installButton.disabled = true;
+}
+
+function showInstallInstructions() {
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isIOS = /iphone|ipad|ipod/.test(userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = /android/.test(userAgent);
+  const steps = isIOS
+    ? ["Open this page in <strong>Safari</strong>.", "Tap the <strong>Share</strong> button.", "Choose <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>."]
+    : isAndroid
+      ? ["Open your browser menu (usually <strong>⋮</strong>).", "Choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.", "Confirm by tapping <strong>Install</strong> or <strong>Add</strong>."]
+      : ["Open this page on your phone.", "On iPhone, use Safari’s <strong>Share → Add to Home Screen</strong>.", "On Android, use the browser menu’s <strong>Install app</strong> option."];
+  $("#install-steps").innerHTML = steps.map(step => `<li>${step}</li>`).join("");
+  installDialog.showModal();
+}
+
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  installPrompt = event;
+  installButton.textContent = "Install app";
+});
+
+installButton.addEventListener("click", async () => {
+  if (installPrompt) {
+    installPrompt.prompt();
+    const result = await installPrompt.userChoice;
+    if (result.outcome === "accepted") markInstalled();
+    installPrompt = null;
+    return;
+  }
+  showInstallInstructions();
+});
+$("#close-install-dialog").addEventListener("click", () => installDialog.close());
+$("#got-it").addEventListener("click", () => installDialog.close());
+window.addEventListener("appinstalled", markInstalled);
+
 setGreeting();
 render();
+if (isStandalone()) markInstalled();
 setInterval(render, 1000);
 
 if ("serviceWorker" in navigator) {
