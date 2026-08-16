@@ -16,9 +16,6 @@ const progressBar = $("#progress-bar");
 const progressCopy = $("#progress-copy");
 const dialog = $("#time-dialog");
 const timeInput = $("#feeding-time");
-const installDialog = $("#install-dialog");
-const installButton = $("#install-app");
-let installPrompt = null;
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ intervalHours, lastFeeding: lastFeeding?.toISOString() || null }));
@@ -136,51 +133,8 @@ $("#custom-hours").addEventListener("change", (event) => {
   } else render();
 });
 
-function isStandalone() {
-  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-}
-
-function markInstalled() {
-  installButton.textContent = "Added to Home Screen";
-  installButton.disabled = true;
-}
-
-function showInstallInstructions() {
-  const userAgent = navigator.userAgent.toLowerCase();
-  const isIOS = /iphone|ipad|ipod/.test(userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const isAndroid = /android/.test(userAgent);
-  const steps = isIOS
-    ? ["Open this page in <strong>Safari</strong>.", "Tap the <strong>Share</strong> button.", "Choose <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>."]
-    : isAndroid
-      ? ["Open your browser menu (usually <strong>⋮</strong>).", "Choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.", "Confirm by tapping <strong>Install</strong> or <strong>Add</strong>."]
-      : ["Open this page on your phone.", "On iPhone, use Safari’s <strong>Share → Add to Home Screen</strong>.", "On Android, use the browser menu’s <strong>Install app</strong> option."];
-  $("#install-steps").innerHTML = steps.map(step => `<li>${step}</li>`).join("");
-  installDialog.showModal();
-}
-
-window.addEventListener("beforeinstallprompt", event => {
-  event.preventDefault();
-  installPrompt = event;
-  installButton.textContent = "Install app";
-});
-
-installButton.addEventListener("click", async () => {
-  if (installPrompt) {
-    installPrompt.prompt();
-    const result = await installPrompt.userChoice;
-    if (result.outcome === "accepted") markInstalled();
-    installPrompt = null;
-    return;
-  }
-  showInstallInstructions();
-});
-$("#close-install-dialog").addEventListener("click", () => installDialog.close());
-$("#got-it").addEventListener("click", () => installDialog.close());
-window.addEventListener("appinstalled", markInstalled);
-
 setGreeting();
 render();
-if (isStandalone()) markInstalled();
 setInterval(render, 1000);
 
 if ("serviceWorker" in navigator) {
