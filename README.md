@@ -46,6 +46,8 @@ The optional server in `server/` schedules standards-based Web Push notification
 
 The computer and tunnel must remain running for background reminders to arrive.
 
+On Windows, run `server/install-windows-tasks.ps1` as an administrator after configuring the tunnel. It installs the push server and Cloudflare tunnel as startup tasks with automatic restart. Run `server/remove-windows-tasks.ps1` as an administrator to remove them.
+
 ## Run locally
 
 Serve this folder with any static web server, then open the local address in a browser. For example:
