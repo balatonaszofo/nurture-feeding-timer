@@ -8,6 +8,7 @@ A small, calming feeding timer that remembers the last feeding and automatically
 - Edit the feeding time if you forgot to log it immediately
 - Stop an active feeding to save its session duration in the timetable
 - Add or edit feeding details: planned vs. top-off, breast milk vs. formula, and optional notes
+- Count top-offs in history without letting them reset the next planned-feeding countdown
 - Choose a 2, 3, 4, or 5 hour routine—or enter a custom interval
 - See a live countdown and approximate next feeding time
 - Enable an on-device chime, vibration, and notification when the timer ends

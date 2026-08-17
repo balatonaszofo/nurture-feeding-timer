@@ -85,13 +85,13 @@ function getDurationParts(ms) {
   return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 };
 }
 
-function showDuration(ms) {
+function showDuration(ms, subject = "the next feeding") {
   const { hours, minutes } = getDurationParts(ms);
   countdownDuration.hidden = false;
   countdownMessage.hidden = true;
   countdownHours.textContent = hours;
   countdownMinutes.textContent = String(minutes).padStart(2, "0");
-  countdown.setAttribute("aria-label", `${hours} ${hours === 1 ? "hour" : "hours"} and ${minutes} ${minutes === 1 ? "minute" : "minutes"} until the next feeding`);
+  countdown.setAttribute("aria-label", `${hours} ${hours === 1 ? "hour" : "hours"} and ${minutes} ${minutes === 1 ? "minute" : "minutes"} until ${subject}`);
 }
 
 function showCountdownMessage(message) {
@@ -136,11 +136,12 @@ async function cancelPushReminder() {
 
 async function syncPushReminder() {
   if (!PUSH_SERVER || !("serviceWorker" in navigator) || !("PushManager" in window)) return false;
-  if (!alarmEnabled || !lastFeeding) {
+  const scheduleAnchor = getScheduleAnchorFeeding();
+  if (!alarmEnabled || !scheduleAnchor) {
     await cancelPushReminder();
     return false;
   }
-  const dueAt = new Date(lastFeeding.getTime() + intervalHours * 3600000);
+  const dueAt = new Date(scheduleAnchor.getTime() + intervalHours * 3600000);
   if (dueAt <= new Date() || !("Notification" in window) || Notification.permission !== "granted") {
     await cancelPushReminder();
     return false;
@@ -208,6 +209,14 @@ function formatSessionDuration(ms) {
 
 function getActiveFeedingSession() {
   return [...feedingSessions].reverse().find(session => !session.endAt) || null;
+}
+
+function getScheduleAnchorFeeding() {
+  for (let index = feedingHistory.length - 1; index >= 0; index -= 1) {
+    const startAt = feedingHistory[index];
+    if (feedingDetails[startAt]?.kind !== "top-off") return new Date(startAt);
+  }
+  return lastFeeding;
 }
 
 function hasFeedingDetails(startAt) {
@@ -453,6 +462,7 @@ async function triggerFeedingAlarm(due) {
 
 function render() {
   const activeSession = getActiveFeedingSession();
+  const scheduleAnchor = getScheduleAnchorFeeding();
   const feedingInProgress = Boolean(activeSession);
   feedNow.disabled = feedingInProgress;
   feedButtonLabel.textContent = feedingInProgress ? "Feeding in progress" : "Log feeding now";
@@ -467,7 +477,7 @@ function render() {
   });
   latestFeedingDetails.hidden = !lastFeeding;
   if (lastFeeding) latestFeedingDetails.textContent = hasFeedingDetails(lastFeeding.toISOString()) ? "Edit feeding details" : "Add feeding details";
-  if (!lastFeeding || Number.isNaN(lastFeeding.getTime())) {
+  if (!lastFeeding || Number.isNaN(lastFeeding.getTime()) || !scheduleAnchor || Number.isNaN(scheduleAnchor.getTime())) {
     countdownDuration.hidden = false;
     countdownMessage.hidden = true;
     countdownHours.textContent = "--";
@@ -482,23 +492,27 @@ function render() {
   }
   const now = new Date();
   const intervalMs = intervalHours * 3600000;
-  const due = new Date(lastFeeding.getTime() + intervalMs);
+  const due = new Date(scheduleAnchor.getTime() + intervalMs);
   const remaining = due - now;
-  const elapsed = now - lastFeeding;
+  const elapsed = now - scheduleAnchor;
+  const latestIsTopOff = feedingDetails[lastFeeding.toISOString()]?.kind === "top-off";
+  const scheduleUsesEarlierFeeding = latestIsTopOff && scheduleAnchor.getTime() !== lastFeeding.getTime();
+  const anchorIsPlanned = feedingDetails[scheduleAnchor.toISOString()]?.kind === "planned";
+  const anchorDescription = anchorIsPlanned ? "planned feeding" : "earlier feeding";
   if (alarmEnabled && remaining <= 0 && remaining > -15 * 60000) void triggerFeedingAlarm(due);
   lastFed.textContent = `Last feeding: ${formatDateTime(lastFeeding)}`;
   if (remaining <= 0) {
     showCountdownMessage("It's time");
-    nextTime.textContent = `Was due at ${formatTime(due)}`;
-    timerLabel.textContent = "NEXT FEEDING";
+    nextTime.textContent = scheduleUsesEarlierFeeding ? `Planned feeding was due at ${formatTime(due)}` : `Was due at ${formatTime(due)}`;
+    timerLabel.textContent = scheduleUsesEarlierFeeding ? "NEXT PLANNED FEEDING" : "NEXT FEEDING";
     progressBar.style.width = "100%";
-    progressCopy.textContent = "Whenever baby is ready";
+    progressCopy.textContent = scheduleUsesEarlierFeeding ? `Based on the ${formatTime(scheduleAnchor)} ${anchorDescription}` : "Whenever baby is ready";
   } else {
-    showDuration(remaining);
-    nextTime.textContent = `Next feeding around ${formatTime(due)}`;
-    timerLabel.textContent = "NEXT FEEDING IN";
+    showDuration(remaining, scheduleUsesEarlierFeeding ? "the next planned feeding" : "the next feeding");
+    nextTime.textContent = scheduleUsesEarlierFeeding ? `Next planned feeding around ${formatTime(due)}` : `Next feeding around ${formatTime(due)}`;
+    timerLabel.textContent = scheduleUsesEarlierFeeding ? "NEXT PLANNED FEEDING IN" : "NEXT FEEDING IN";
     progressBar.style.width = `${Math.min(100, Math.max(0, elapsed / intervalMs * 100))}%`;
-    progressCopy.textContent = `${Math.max(0, Math.round(remaining / 60000))} minutes until the next feed`;
+    progressCopy.textContent = scheduleUsesEarlierFeeding ? `Based on the ${formatTime(scheduleAnchor)} ${anchorDescription} · ${Math.max(0, Math.round(remaining / 60000))} minutes remaining` : `${Math.max(0, Math.round(remaining / 60000))} minutes until the next feed`;
   }
 }
 
@@ -603,6 +617,7 @@ feedingDetailsForm.addEventListener("submit", event => {
   save();
   render();
   renderHistory();
+  void syncPushReminder();
   feedingDetailsDialog.close();
 });
 feedingDetailsDialog.addEventListener("close", () => {

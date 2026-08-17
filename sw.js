@@ -1,5 +1,5 @@
-const CACHE = "nurture-v11";
-const ASSETS = ["./", "./index.html", "./styles.css?v=11", "./push-config.js?v=11", "./app.js?v=11", "./manifest.webmanifest?v=11", "./icon.svg"];
+const CACHE = "nurture-v12";
+const ASSETS = ["./", "./index.html", "./styles.css?v=12", "./push-config.js?v=12", "./app.js?v=12", "./manifest.webmanifest?v=12", "./icon.svg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
