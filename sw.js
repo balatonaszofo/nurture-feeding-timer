@@ -1,5 +1,5 @@
-const CACHE = "nurture-v5";
-const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./icon.svg"];
+const CACHE = "nurture-v6";
+const ASSETS = ["./", "./index.html", "./styles.css", "./push-config.js", "./app.js", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
@@ -24,4 +24,21 @@ self.addEventListener("notificationclick", event => {
       return existing ? existing.focus() : clients.openWindow("./");
     })
   );
+});
+
+self.addEventListener("push", event => {
+  let message = {};
+  try {
+    message = event.data?.json() || {};
+  } catch {
+    message = { body: event.data?.text() || "The feeding timer has reached zero." };
+  }
+  event.waitUntil(self.registration.showNotification(message.title || "It's feeding time", {
+    body: message.body || "The feeding timer has reached zero.",
+    icon: "./icon.svg",
+    badge: "./icon.svg",
+    tag: message.tag || "nurture-feeding-alarm",
+    renotify: true,
+    data: { url: message.url || "./" }
+  }));
 });

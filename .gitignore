@@ -1,1 +1,4 @@
 .codex-remote-attachments/
+server/.env
+server/data/
+server/node_modules/

@@ -1,4 +1,6 @@
 const STORAGE_KEY = "nurture-feeding-state";
+const PUSH_DEVICE_KEY = "nurture-push-device-id";
+const PUSH_SERVER = String(window.NURTURE_PUSH_SERVER || "").replace(/\/$/, "");
 const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
 let intervalHours = Number(state.intervalHours) || 3;
 const storedFeedings = Array.isArray(state.feedingHistory) ? state.feedingHistory : [];
@@ -11,6 +13,7 @@ let alarmEnabled = state.alarmEnabled === true;
 let lastAlarmedFor = state.lastAlarmedFor || null;
 let alarmAudioContext = null;
 let editingExistingFeeding = false;
+let pushConnected = false;
 
 const $ = (selector) => document.querySelector(selector);
 const countdown = $("#countdown");
@@ -68,6 +71,70 @@ function formatTime(date) {
 
 function formatDateTime(date) {
   return new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }).format(date);
+}
+
+function getPushDeviceId() {
+  let deviceId = localStorage.getItem(PUSH_DEVICE_KEY);
+  if (!deviceId) {
+    deviceId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(PUSH_DEVICE_KEY, deviceId);
+  }
+  return deviceId;
+}
+
+function decodeVapidKey(value) {
+  const padding = "=".repeat((4 - value.length % 4) % 4);
+  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
+  return Uint8Array.from(atob(base64), character => character.charCodeAt(0));
+}
+
+async function cancelPushReminder() {
+  if (!PUSH_SERVER) return;
+  try {
+    await fetch(`${PUSH_SERVER}/api/reminders/${getPushDeviceId()}`, { method: "DELETE" });
+  } catch {
+    // A stale reminder expires automatically on the server after its due time.
+  }
+  pushConnected = false;
+}
+
+async function syncPushReminder() {
+  if (!PUSH_SERVER || !("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+  if (!alarmEnabled || !lastFeeding) {
+    await cancelPushReminder();
+    return false;
+  }
+  const dueAt = new Date(lastFeeding.getTime() + intervalHours * 3600000);
+  if (dueAt <= new Date() || !("Notification" in window) || Notification.permission !== "granted") {
+    await cancelPushReminder();
+    return false;
+  }
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      const configResponse = await fetch(`${PUSH_SERVER}/api/config`);
+      if (!configResponse.ok) throw new Error("Push configuration unavailable");
+      const { vapidPublicKey } = await configResponse.json();
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: decodeVapidKey(vapidPublicKey)
+      });
+    }
+    const response = await fetch(`${PUSH_SERVER}/api/reminders/${getPushDeviceId()}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subscription, dueAt: dueAt.toISOString() })
+    });
+    if (!response.ok) throw new Error("Reminder schedule rejected");
+    pushConnected = true;
+    updateAlarmUI();
+    return true;
+  } catch {
+    pushConnected = false;
+    updateAlarmUI("On · background service unavailable; keep Nurture active");
+    return false;
+  }
 }
 
 function localDayKey(date) {
@@ -149,6 +216,8 @@ function updateAlarmUI(message = "") {
     alarmStatus.textContent = message;
   } else if (!alarmEnabled) {
     alarmStatus.textContent = "Off · alerts work while Nurture is active";
+  } else if (pushConnected) {
+    alarmStatus.textContent = "On · background notification scheduled";
   } else if ("Notification" in window && Notification.permission === "granted") {
     alarmStatus.textContent = "On · chime and notification while active";
   } else {
@@ -274,6 +343,7 @@ function logFeeding(date = new Date(), replaceLatest = false) {
   save();
   render();
   renderHistory();
+  void syncPushReminder();
 }
 
 function openTimeDialog() {
@@ -305,6 +375,7 @@ document.querySelectorAll(".interval-option").forEach(button => button.addEventL
   lastAlarmedFor = null;
   save();
   render();
+  void syncPushReminder();
 }));
 $("#custom-hours").addEventListener("change", (event) => {
   const value = Number(event.target.value);
@@ -313,6 +384,7 @@ $("#custom-hours").addEventListener("change", (event) => {
     lastAlarmedFor = null;
     save();
     render();
+    void syncPushReminder();
   } else render();
 });
 
@@ -320,6 +392,7 @@ alarmToggle.addEventListener("click", async () => {
   if (alarmEnabled) {
     alarmEnabled = false;
     save();
+    void cancelPushReminder();
     updateAlarmUI();
     return;
   }
@@ -337,6 +410,7 @@ alarmToggle.addEventListener("click", async () => {
   }
   await sound;
   updateAlarmUI();
+  void syncPushReminder();
 });
 
 testAlarm.addEventListener("click", () => {
@@ -358,5 +432,8 @@ setInterval(render, 1000);
 setInterval(renderHistory, 60000);
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js"));
+  window.addEventListener("load", async () => {
+    await navigator.serviceWorker.register("./sw.js");
+    void syncPushReminder();
+  });
 }

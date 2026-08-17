@@ -1,0 +1,15 @@
+{
+  "name": "nurture-push-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node setup.mjs",
+    "start": "node --env-file=.env server.mjs",
+    "check": "node --check server.mjs && node --check setup.mjs"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "web-push": "^3.6.7"
+  }
+}

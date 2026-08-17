@@ -35,6 +35,17 @@ All feeding data stays in that browser on that device. It is not uploaded to a s
 
 The alarm is designed for use while Nurture is active. Mobile operating systems may suspend browser timers when the app is in the background, even if it still appears open. Guaranteed background notifications require server-backed web push or a native mobile app.
 
+## Background notification server
+
+The optional server in `server/` schedules standards-based Web Push notifications while keeping feeding history on the phone. It stores only the device push subscription and next due time.
+
+1. Run `npm install` inside `server/`.
+2. Run `npm run setup` and replace the placeholder VAPID contact email in `server/.env`.
+3. Run `npm start` and expose `http://127.0.0.1:8787` through a stable HTTPS Cloudflare Tunnel hostname.
+4. Put that hostname in `push-config.js` and redeploy the static site.
+
+The computer and tunnel must remain running for background reminders to arrive.
+
 ## Run locally
 
 Serve this folder with any static web server, then open the local address in a browser. For example:
