@@ -1,4 +1,4 @@
-const CACHE = "nurture-v8";
+const CACHE = "nurture-v9";
 const ASSETS = ["./", "./index.html", "./styles.css", "./push-config.js", "./app.js", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", event => {

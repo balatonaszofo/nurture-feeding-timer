@@ -6,6 +6,7 @@ A small, calming feeding timer that remembers the last feeding and automatically
 
 - Log a feeding with one tap
 - Edit the feeding time if you forgot to log it immediately
+- Stop an active feeding to save its session duration in the timetable
 - Choose a 2, 3, 4, or 5 hour routine—or enter a custom interval
 - See a live countdown and approximate next feeding time
 - Enable an on-device chime, vibration, and notification when the timer ends

@@ -55,10 +55,14 @@
       <section class="primary-action">
         <button id="feed-now" class="feed-button" type="button">
           <span class="button-bottle" aria-hidden="true">⌁</span>
-          <span>Log feeding now</span>
+          <span id="feed-button-label">Log feeding now</span>
           <span class="button-arrow" aria-hidden="true">→</span>
         </button>
         <p id="last-fed" class="last-fed">No feeding logged yet</p>
+        <div id="feeding-session-controls" class="feeding-session-controls" hidden>
+          <span class="session-status"><span class="session-pulse" aria-hidden="true"></span><span id="session-elapsed">0 sec elapsed</span></span>
+          <button id="stop-feeding" type="button">Stop feeding</button>
+        </div>
       </section>
 
       <section class="diaper-card" aria-labelledby="diaper-title">

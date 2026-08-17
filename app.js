@@ -8,6 +8,14 @@ let feedingHistory = [...new Set([...storedFeedings, state.lastFeeding].filter(v
   if (!value) return false;
   return !Number.isNaN(new Date(value).getTime());
 }))].sort((a, b) => new Date(a) - new Date(b));
+const storedFeedingSessions = Array.isArray(state.feedingSessions) ? state.feedingSessions : [];
+let feedingSessions = storedFeedingSessions.map(session => ({
+  startAt: session?.startAt,
+  endAt: session?.endAt || null
+})).filter(session => {
+  if (!session.startAt || Number.isNaN(new Date(session.startAt).getTime())) return false;
+  return !session.endAt || !Number.isNaN(new Date(session.endAt).getTime());
+}).sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
 const storedDiapers = Array.isArray(state.diaperHistory) ? state.diaperHistory : [];
 let diaperHistory = [...new Set(storedDiapers.filter(value => {
   if (!value) return false;
@@ -28,6 +36,10 @@ const countdownHours = $("#countdown-hours");
 const countdownMinutes = $("#countdown-minutes");
 const nextTime = $("#next-time");
 const lastFed = $("#last-fed");
+const feedNow = $("#feed-now");
+const feedButtonLabel = $("#feed-button-label");
+const feedingSessionControls = $("#feeding-session-controls");
+const sessionElapsed = $("#session-elapsed");
 const timerLabel = $("#timer-label");
 const progressBar = $("#progress-bar");
 const progressCopy = $("#progress-copy");
@@ -47,6 +59,7 @@ function save() {
     intervalHours,
     lastFeeding: lastFeeding?.toISOString() || null,
     feedingHistory,
+    feedingSessions,
     diaperHistory,
     alarmEnabled,
     lastAlarmedFor
@@ -159,6 +172,30 @@ function formatGap(ms) {
   return `${hours} hr ${minutes} min after previous`;
 }
 
+function formatElapsed(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor(totalSeconds % 3600 / 60);
+  const seconds = totalSeconds % 60;
+  if (hours) return `${hours} hr ${minutes} min ${seconds} sec`;
+  if (minutes) return `${minutes} min ${seconds} sec`;
+  return `${seconds} sec`;
+}
+
+function formatSessionDuration(ms) {
+  if (ms < 60000) return "Under 1 min";
+  const totalMinutes = Math.max(1, Math.round(ms / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (!hours) return `${minutes} min`;
+  if (!minutes) return `${hours} hr`;
+  return `${hours} hr ${minutes} min`;
+}
+
+function getActiveFeedingSession() {
+  return [...feedingSessions].reverse().find(session => !session.endAt) || null;
+}
+
 function renderHistory() {
   const feedings = feedingHistory.map(value => new Date(value)).filter(date => !Number.isNaN(date.getTime())).sort((a, b) => b - a);
   const todayKey = localDayKey(new Date());
@@ -178,10 +215,11 @@ function renderHistory() {
   }
 
   const groups = new Map();
+  const sessionsByStart = new Map(feedingSessions.map(session => [session.startAt, session]));
   feedings.forEach((date, index) => {
     const key = localDayKey(date);
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push({ date, olderFeeding: feedings[index + 1] || null });
+    groups.get(key).push({ date, olderFeeding: feedings[index + 1] || null, session: sessionsByStart.get(date.toISOString()) || null });
   });
 
   groups.forEach((entries, key) => {
@@ -192,7 +230,7 @@ function renderHistory() {
     heading.textContent = dayLabel;
     const list = document.createElement("ol");
     list.className = "timetable-list";
-    entries.forEach(({ date, olderFeeding }) => {
+    entries.forEach(({ date, olderFeeding, session }) => {
       const item = document.createElement("li");
       item.className = "timetable-item";
       const dot = document.createElement("span");
@@ -201,10 +239,22 @@ function renderHistory() {
       const time = document.createElement("time");
       time.dateTime = date.toISOString();
       time.textContent = formatTime(date);
+      const details = document.createElement("span");
+      details.className = "timetable-details";
+      const duration = document.createElement("strong");
+      duration.className = "session-duration";
+      if (!session) {
+        duration.textContent = "Duration not tracked";
+      } else if (session.endAt) {
+        duration.textContent = `${formatSessionDuration(new Date(session.endAt) - new Date(session.startAt))} feeding`;
+      } else {
+        duration.textContent = `${formatElapsed(new Date() - new Date(session.startAt))} · In progress`;
+      }
       const gap = document.createElement("span");
       gap.className = "timetable-gap";
       gap.textContent = olderFeeding ? formatGap(date - olderFeeding) : "First logged feeding";
-      item.append(dot, time, gap);
+      details.append(duration, gap);
+      item.append(dot, time, details);
       list.append(item);
     });
     section.append(heading, list);
@@ -350,6 +400,12 @@ async function triggerFeedingAlarm(due) {
 }
 
 function render() {
+  const activeSession = getActiveFeedingSession();
+  const feedingInProgress = Boolean(activeSession);
+  feedNow.disabled = feedingInProgress;
+  feedButtonLabel.textContent = feedingInProgress ? "Feeding in progress" : "Log feeding now";
+  feedingSessionControls.hidden = !feedingInProgress;
+  if (activeSession) sessionElapsed.textContent = `${formatElapsed(new Date() - new Date(activeSession.startAt))} elapsed`;
   $("#interval-value").textContent = intervalHours % 1 ? intervalHours : Math.round(intervalHours);
   if (document.activeElement !== $("#custom-hours")) $("#custom-hours").value = [2, 3, 4, 5].includes(intervalHours) ? "" : intervalHours;
   document.querySelectorAll(".interval-option").forEach(button => {
@@ -394,18 +450,37 @@ function render() {
 
 function logFeeding(date = new Date(), replaceLatest = false) {
   const isoTime = date.toISOString();
+  const previousLatest = feedingHistory[feedingHistory.length - 1] || null;
   if (replaceLatest && feedingHistory.length) {
     feedingHistory[feedingHistory.length - 1] = isoTime;
+    const matchingSession = feedingSessions.find(session => session.startAt === previousLatest);
+    if (matchingSession) {
+      matchingSession.startAt = isoTime;
+      if (matchingSession.endAt && new Date(matchingSession.endAt) < date) matchingSession.endAt = isoTime;
+    }
   } else {
     feedingHistory.push(isoTime);
+    feedingSessions.push({ startAt: isoTime, endAt: null });
   }
   feedingHistory = [...new Set(feedingHistory)].sort((a, b) => new Date(a) - new Date(b));
+  feedingSessions.sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
   lastFeeding = new Date(feedingHistory[feedingHistory.length - 1]);
   lastAlarmedFor = null;
   save();
   render();
   renderHistory();
   void syncPushReminder();
+}
+
+function stopFeeding() {
+  const activeSession = getActiveFeedingSession();
+  if (!activeSession) return;
+  const start = new Date(activeSession.startAt);
+  const now = new Date();
+  activeSession.endAt = new Date(Math.max(start.getTime(), now.getTime())).toISOString();
+  save();
+  render();
+  renderHistory();
 }
 
 function logDiaperChange(date = new Date()) {
@@ -432,7 +507,8 @@ function openTimeDialog() {
   dialog.showModal();
 }
 
-$("#feed-now").addEventListener("click", () => logFeeding());
+feedNow.addEventListener("click", () => logFeeding());
+$("#stop-feeding").addEventListener("click", stopFeeding);
 $("#log-diaper").addEventListener("click", () => logDiaperChange());
 undoDiaper.addEventListener("click", undoLastDiaperChange);
 $("#view-diapers").addEventListener("click", () => {
