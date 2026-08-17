@@ -66,12 +66,25 @@
         <div class="alarm-copy">
           <p class="eyebrow">REMINDERS</p>
           <h2 id="alarm-title">Feeding alarm</h2>
-          <p id="alarm-status">Off · turn on for an alert when time is up</p>
+          <p id="alarm-status">Off · alerts work while Nurture is active</p>
         </div>
         <div class="alarm-actions">
           <button id="test-alarm" class="test-alarm" type="button" disabled>Test</button>
           <button id="alarm-toggle" class="alarm-toggle" type="button" role="switch" aria-checked="false">Off</button>
         </div>
+      </section>
+
+      <section class="history-card" aria-labelledby="history-title">
+        <div>
+          <p class="eyebrow">HISTORY</p>
+          <h2 id="history-title">Today's feedings</h2>
+          <p id="history-total">No feedings logged yet</p>
+        </div>
+        <div class="history-count-wrap">
+          <strong id="feeding-count">0</strong>
+          <span id="feeding-count-label">feedings</span>
+        </div>
+        <button id="view-timetable" class="view-timetable" type="button">View timetable <span aria-hidden="true">→</span></button>
       </section>
 
       <section class="settings-card" aria-labelledby="settings-title">
@@ -116,6 +129,17 @@
         <input id="feeding-time" type="datetime-local" required />
         <button id="save-time" class="dialog-save" value="default">Save feeding</button>
       </form>
+    </dialog>
+
+    <dialog id="history-dialog" class="time-dialog history-dialog">
+      <div class="history-dialog-content">
+        <button id="close-history" class="close-dialog" type="button" aria-label="Close">×</button>
+        <p class="eyebrow">FEEDING HISTORY</p>
+        <h2>Feeding timetable</h2>
+        <p id="history-dialog-summary" class="history-dialog-summary"></p>
+        <div id="feeding-timetable" class="feeding-timetable"></div>
+        <button id="done-history" class="dialog-save" type="button">Done</button>
+      </div>
     </dialog>
 
     <script src="app.js"></script>

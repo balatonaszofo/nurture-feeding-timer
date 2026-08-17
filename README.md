@@ -9,6 +9,7 @@ A small, calming feeding timer that remembers the last feeding and automatically
 - Choose a 2, 3, 4, or 5 hour routine—or enter a custom interval
 - See a live countdown and approximate next feeding time
 - Enable an on-device chime, vibration, and notification when the timer ends
+- Count feedings and review a complete timetable grouped by day
 - Keep your settings on the device with local storage
 - Install from the browser as a home-screen app
 - Work offline after the first visit
@@ -32,7 +33,7 @@ Once GitHub Pages is enabled, open the published site on your phone.
 
 All feeding data stays in that browser on that device. It is not uploaded to a server or shared between devices.
 
-The alarm is designed for use while Nurture remains open or running. Guaranteed notifications after the operating system fully suspends or closes the web app would require server-backed web push or a native mobile app.
+The alarm is designed for use while Nurture is active. Mobile operating systems may suspend browser timers when the app is in the background, even if it still appears open. Guaranteed background notifications require server-backed web push or a native mobile app.
 
 ## Run locally
 

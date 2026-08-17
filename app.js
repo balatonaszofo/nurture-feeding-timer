@@ -1,10 +1,16 @@
 const STORAGE_KEY = "nurture-feeding-state";
 const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
 let intervalHours = Number(state.intervalHours) || 3;
-let lastFeeding = state.lastFeeding ? new Date(state.lastFeeding) : null;
+const storedFeedings = Array.isArray(state.feedingHistory) ? state.feedingHistory : [];
+let feedingHistory = [...new Set([...storedFeedings, state.lastFeeding].filter(value => {
+  if (!value) return false;
+  return !Number.isNaN(new Date(value).getTime());
+}))].sort((a, b) => new Date(a) - new Date(b));
+let lastFeeding = feedingHistory.length ? new Date(feedingHistory[feedingHistory.length - 1]) : null;
 let alarmEnabled = state.alarmEnabled === true;
 let lastAlarmedFor = state.lastAlarmedFor || null;
 let alarmAudioContext = null;
+let editingExistingFeeding = false;
 
 const $ = (selector) => document.querySelector(selector);
 const countdown = $("#countdown");
@@ -22,11 +28,14 @@ const timeInput = $("#feeding-time");
 const alarmToggle = $("#alarm-toggle");
 const alarmStatus = $("#alarm-status");
 const testAlarm = $("#test-alarm");
+const historyDialog = $("#history-dialog");
+const feedingTimetable = $("#feeding-timetable");
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     intervalHours,
     lastFeeding: lastFeeding?.toISOString() || null,
+    feedingHistory,
     alarmEnabled,
     lastAlarmedFor
   }));
@@ -61,6 +70,72 @@ function formatDateTime(date) {
   return new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }).format(date);
 }
 
+function localDayKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function formatGap(ms) {
+  const totalMinutes = Math.max(1, Math.round(ms / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (!hours) return `${minutes} min after previous`;
+  if (!minutes) return `${hours} hr after previous`;
+  return `${hours} hr ${minutes} min after previous`;
+}
+
+function renderHistory() {
+  const feedings = feedingHistory.map(value => new Date(value)).filter(date => !Number.isNaN(date.getTime())).sort((a, b) => b - a);
+  const todayKey = localDayKey(new Date());
+  const todayCount = feedings.filter(date => localDayKey(date) === todayKey).length;
+  $("#feeding-count").textContent = todayCount;
+  $("#feeding-count-label").textContent = todayCount === 1 ? "feeding" : "feedings";
+  $("#history-total").textContent = feedings.length ? `${feedings.length} total logged on this device` : "No feedings logged yet";
+  $("#history-dialog-summary").textContent = `${todayCount} ${todayCount === 1 ? "feeding" : "feedings"} today · ${feedings.length} total`;
+  feedingTimetable.replaceChildren();
+
+  if (!feedings.length) {
+    const empty = document.createElement("p");
+    empty.className = "history-empty";
+    empty.textContent = "Your logged feedings will appear here.";
+    feedingTimetable.append(empty);
+    return;
+  }
+
+  const groups = new Map();
+  feedings.forEach((date, index) => {
+    const key = localDayKey(date);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({ date, olderFeeding: feedings[index + 1] || null });
+  });
+
+  groups.forEach((entries, key) => {
+    const section = document.createElement("section");
+    section.className = "timetable-day";
+    const heading = document.createElement("h3");
+    const dayLabel = key === todayKey ? "Today" : new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric" }).format(entries[0].date);
+    heading.textContent = dayLabel;
+    const list = document.createElement("ol");
+    list.className = "timetable-list";
+    entries.forEach(({ date, olderFeeding }) => {
+      const item = document.createElement("li");
+      item.className = "timetable-item";
+      const dot = document.createElement("span");
+      dot.className = "timetable-dot";
+      dot.setAttribute("aria-hidden", "true");
+      const time = document.createElement("time");
+      time.dateTime = date.toISOString();
+      time.textContent = formatTime(date);
+      const gap = document.createElement("span");
+      gap.className = "timetable-gap";
+      gap.textContent = olderFeeding ? formatGap(date - olderFeeding) : "First logged feeding";
+      item.append(dot, time, gap);
+      list.append(item);
+    });
+    section.append(heading, list);
+    feedingTimetable.append(section);
+  });
+}
+
 function setGreeting() {
   const hour = new Date().getHours();
   $("#greeting").textContent = hour < 12 ? "GOOD MORNING" : hour < 18 ? "GOOD AFTERNOON" : "GOOD EVENING";
@@ -73,9 +148,9 @@ function updateAlarmUI(message = "") {
   if (message) {
     alarmStatus.textContent = message;
   } else if (!alarmEnabled) {
-    alarmStatus.textContent = "Off · turn on for an alert when time is up";
+    alarmStatus.textContent = "Off · alerts work while Nurture is active";
   } else if ("Notification" in window && Notification.permission === "granted") {
-    alarmStatus.textContent = "On · chime, vibration and notification";
+    alarmStatus.textContent = "On · chime and notification while active";
   } else {
     alarmStatus.textContent = "On · chime and vibration while Nurture is open";
   }
@@ -186,14 +261,23 @@ function render() {
   }
 }
 
-function logFeeding(date = new Date()) {
-  lastFeeding = date;
+function logFeeding(date = new Date(), replaceLatest = false) {
+  const isoTime = date.toISOString();
+  if (replaceLatest && feedingHistory.length) {
+    feedingHistory[feedingHistory.length - 1] = isoTime;
+  } else {
+    feedingHistory.push(isoTime);
+  }
+  feedingHistory = [...new Set(feedingHistory)].sort((a, b) => new Date(a) - new Date(b));
+  lastFeeding = new Date(feedingHistory[feedingHistory.length - 1]);
   lastAlarmedFor = null;
   save();
   render();
+  renderHistory();
 }
 
 function openTimeDialog() {
+  editingExistingFeeding = feedingHistory.length > 0;
   const date = lastFeeding || new Date();
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   timeInput.value = local;
@@ -206,9 +290,16 @@ $("#time-form").addEventListener("submit", (event) => {
   if (event.submitter?.value === "cancel") return;
   event.preventDefault();
   const value = new Date(timeInput.value);
-  if (!Number.isNaN(value.getTime())) logFeeding(value);
+  if (!Number.isNaN(value.getTime())) logFeeding(value, editingExistingFeeding);
+  editingExistingFeeding = false;
   dialog.close();
 });
+$("#view-timetable").addEventListener("click", () => {
+  renderHistory();
+  historyDialog.showModal();
+});
+$("#close-history").addEventListener("click", () => historyDialog.close());
+$("#done-history").addEventListener("click", () => historyDialog.close());
 document.querySelectorAll(".interval-option").forEach(button => button.addEventListener("click", () => {
   intervalHours = Number(button.dataset.hours);
   lastAlarmedFor = null;
@@ -261,8 +352,10 @@ document.addEventListener("pointerdown", () => {
 
 setGreeting();
 render();
+renderHistory();
 updateAlarmUI();
 setInterval(render, 1000);
+setInterval(renderHistory, 60000);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js"));
