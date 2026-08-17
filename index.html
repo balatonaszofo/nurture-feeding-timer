@@ -8,13 +8,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Nurture" />
     <title>Nurture · Feeding Timer</title>
-    <link rel="manifest" href="manifest.webmanifest?v=10" />
+    <link rel="manifest" href="manifest.webmanifest?v=11" />
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=10" />
+    <link rel="stylesheet" href="styles.css?v=11" />
   </head>
   <body>
     <main class="app-shell">
@@ -59,6 +59,7 @@
           <span class="button-arrow" aria-hidden="true">→</span>
         </button>
         <p id="last-fed" class="last-fed">No feeding logged yet</p>
+        <button id="latest-feeding-details" class="latest-feeding-details" type="button" hidden>Add feeding details</button>
         <div id="feeding-session-controls" class="feeding-session-controls" hidden>
           <span class="session-status"><span class="session-pulse" aria-hidden="true"></span><span id="session-elapsed">0 sec elapsed</span></span>
           <button id="stop-feeding" type="button">Stop feeding</button>
@@ -167,6 +168,35 @@
       </div>
     </dialog>
 
+    <dialog id="feeding-details-dialog" class="time-dialog feeding-details-dialog">
+      <form method="dialog" id="feeding-details-form">
+        <button class="close-dialog" value="cancel" aria-label="Close">×</button>
+        <p class="eyebrow">FEEDING DETAILS</p>
+        <h2>Add a little context</h2>
+        <p id="feeding-details-time" class="feeding-details-time"></p>
+
+        <fieldset>
+          <legend>Feeding type</legend>
+          <div class="detail-options">
+            <label class="detail-choice"><input type="radio" name="feeding-kind" value="planned" /><span>Planned</span></label>
+            <label class="detail-choice"><input type="radio" name="feeding-kind" value="top-off" /><span>Top-off</span></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Milk type</legend>
+          <div class="detail-options">
+            <label class="detail-choice"><input type="radio" name="milk-kind" value="breast-milk" /><span>Breast milk</span></label>
+            <label class="detail-choice"><input type="radio" name="milk-kind" value="formula" /><span>Formula</span></label>
+          </div>
+        </fieldset>
+
+        <label for="feeding-notes">Notes <span class="optional-label">optional</span></label>
+        <textarea id="feeding-notes" maxlength="500" rows="3" placeholder="Amount, how baby fed, or anything you want to remember"></textarea>
+        <button class="dialog-save" value="default">Save details</button>
+      </form>
+    </dialog>
+
     <dialog id="diaper-history-dialog" class="time-dialog history-dialog">
       <div class="history-dialog-content">
         <button id="close-diaper-history" class="close-dialog" type="button" aria-label="Close">×</button>
@@ -178,7 +208,7 @@
       </div>
     </dialog>
 
-    <script src="push-config.js?v=10"></script>
-    <script src="app.js?v=10"></script>
+    <script src="push-config.js?v=11"></script>
+    <script src="app.js?v=11"></script>
   </body>
 </html>

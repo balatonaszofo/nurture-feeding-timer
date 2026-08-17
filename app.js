@@ -16,6 +16,15 @@ let feedingSessions = storedFeedingSessions.map(session => ({
   if (!session.startAt || Number.isNaN(new Date(session.startAt).getTime())) return false;
   return !session.endAt || !Number.isNaN(new Date(session.endAt).getTime());
 }).sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
+const feedingDetails = {};
+const storedFeedingDetails = state.feedingDetails && typeof state.feedingDetails === "object" && !Array.isArray(state.feedingDetails) ? state.feedingDetails : {};
+Object.entries(storedFeedingDetails).forEach(([startAt, details]) => {
+  if (Number.isNaN(new Date(startAt).getTime()) || !details || typeof details !== "object") return;
+  const kind = ["planned", "top-off"].includes(details.kind) ? details.kind : null;
+  const milk = ["breast-milk", "formula"].includes(details.milk) ? details.milk : null;
+  const notes = typeof details.notes === "string" ? details.notes.trim().slice(0, 500) : "";
+  if (kind || milk || notes) feedingDetails[startAt] = { kind, milk, notes };
+});
 const storedDiapers = Array.isArray(state.diaperHistory) ? state.diaperHistory : [];
 let diaperHistory = [...new Set(storedDiapers.filter(value => {
   if (!value) return false;
@@ -26,6 +35,7 @@ let alarmEnabled = state.alarmEnabled === true;
 let lastAlarmedFor = state.lastAlarmedFor || null;
 let alarmAudioContext = null;
 let editingExistingFeeding = false;
+let selectedFeedingStart = null;
 let pushConnected = false;
 
 const $ = (selector) => document.querySelector(selector);
@@ -40,6 +50,7 @@ const feedNow = $("#feed-now");
 const feedButtonLabel = $("#feed-button-label");
 const feedingSessionControls = $("#feeding-session-controls");
 const sessionElapsed = $("#session-elapsed");
+const latestFeedingDetails = $("#latest-feeding-details");
 const timerLabel = $("#timer-label");
 const progressBar = $("#progress-bar");
 const progressCopy = $("#progress-copy");
@@ -50,6 +61,8 @@ const alarmStatus = $("#alarm-status");
 const testAlarm = $("#test-alarm");
 const historyDialog = $("#history-dialog");
 const feedingTimetable = $("#feeding-timetable");
+const feedingDetailsDialog = $("#feeding-details-dialog");
+const feedingDetailsForm = $("#feeding-details-form");
 const diaperHistoryDialog = $("#diaper-history-dialog");
 const diaperTimetable = $("#diaper-timetable");
 const undoDiaper = $("#undo-diaper");
@@ -60,6 +73,7 @@ function save() {
     lastFeeding: lastFeeding?.toISOString() || null,
     feedingHistory,
     feedingSessions,
+    feedingDetails,
     diaperHistory,
     alarmEnabled,
     lastAlarmedFor
@@ -196,6 +210,19 @@ function getActiveFeedingSession() {
   return [...feedingSessions].reverse().find(session => !session.endAt) || null;
 }
 
+function hasFeedingDetails(startAt) {
+  const details = feedingDetails[startAt];
+  return Boolean(details && (details.kind || details.milk || details.notes));
+}
+
+function feedingKindLabel(value) {
+  return value === "planned" ? "Planned" : value === "top-off" ? "Top-off" : "";
+}
+
+function milkKindLabel(value) {
+  return value === "breast-milk" ? "Breast milk" : value === "formula" ? "Formula" : "";
+}
+
 function renderHistory() {
   const feedings = feedingHistory.map(value => new Date(value)).filter(date => !Number.isNaN(date.getTime())).sort((a, b) => b - a);
   const todayKey = localDayKey(new Date());
@@ -254,6 +281,31 @@ function renderHistory() {
       gap.className = "timetable-gap";
       gap.textContent = olderFeeding ? formatGap(date - olderFeeding) : "First logged feeding";
       details.append(duration, gap);
+      const feedingStart = date.toISOString();
+      const metadata = feedingDetails[feedingStart];
+      if (metadata?.kind || metadata?.milk) {
+        const tags = document.createElement("span");
+        tags.className = "feeding-tags";
+        [feedingKindLabel(metadata.kind), milkKindLabel(metadata.milk)].filter(Boolean).forEach(label => {
+          const tag = document.createElement("span");
+          tag.textContent = label;
+          tags.append(tag);
+        });
+        details.append(tags);
+      }
+      if (metadata?.notes) {
+        const note = document.createElement("span");
+        note.className = "feeding-note";
+        note.textContent = metadata.notes;
+        details.append(note);
+      }
+      const detailsButton = document.createElement("button");
+      detailsButton.className = "feeding-details-button";
+      detailsButton.type = "button";
+      detailsButton.dataset.feedingStart = feedingStart;
+      detailsButton.textContent = hasFeedingDetails(feedingStart) ? "Edit details" : "Add details";
+      detailsButton.setAttribute("aria-label", `${detailsButton.textContent} for feeding at ${formatTime(date)}`);
+      details.append(detailsButton);
       item.append(dot, time, details);
       list.append(item);
     });
@@ -413,6 +465,8 @@ function render() {
     button.classList.toggle("active", active);
     button.setAttribute("aria-checked", active);
   });
+  latestFeedingDetails.hidden = !lastFeeding;
+  if (lastFeeding) latestFeedingDetails.textContent = hasFeedingDetails(lastFeeding.toISOString()) ? "Edit feeding details" : "Add feeding details";
   if (!lastFeeding || Number.isNaN(lastFeeding.getTime())) {
     countdownDuration.hidden = false;
     countdownMessage.hidden = true;
@@ -457,6 +511,10 @@ function logFeeding(date = new Date(), replaceLatest = false) {
     if (matchingSession) {
       matchingSession.startAt = isoTime;
       if (matchingSession.endAt && new Date(matchingSession.endAt) < date) matchingSession.endAt = isoTime;
+    }
+    if (previousLatest && previousLatest !== isoTime && feedingDetails[previousLatest]) {
+      feedingDetails[isoTime] = feedingDetails[previousLatest];
+      delete feedingDetails[previousLatest];
     }
   } else {
     feedingHistory.push(isoTime);
@@ -507,8 +565,49 @@ function openTimeDialog() {
   dialog.showModal();
 }
 
+function openFeedingDetails(startAt) {
+  const date = new Date(startAt);
+  if (Number.isNaN(date.getTime())) return;
+  selectedFeedingStart = date.toISOString();
+  feedingDetailsForm.reset();
+  const details = feedingDetails[selectedFeedingStart] || {};
+  if (details.kind) feedingDetailsForm.elements["feeding-kind"].value = details.kind;
+  if (details.milk) feedingDetailsForm.elements["milk-kind"].value = details.milk;
+  $("#feeding-notes").value = details.notes || "";
+  $("#feeding-details-time").textContent = `Feeding logged ${formatDateTime(date)}`;
+  feedingDetailsDialog.showModal();
+}
+
 feedNow.addEventListener("click", () => logFeeding());
 $("#stop-feeding").addEventListener("click", stopFeeding);
+latestFeedingDetails.addEventListener("click", () => {
+  if (lastFeeding) openFeedingDetails(lastFeeding.toISOString());
+});
+feedingTimetable.addEventListener("click", event => {
+  const detailsButton = event.target.closest("[data-feeding-start]");
+  if (detailsButton) openFeedingDetails(detailsButton.dataset.feedingStart);
+});
+feedingDetailsForm.addEventListener("submit", event => {
+  if (event.submitter?.value === "cancel") return;
+  event.preventDefault();
+  if (!selectedFeedingStart) return;
+  const formData = new FormData(feedingDetailsForm);
+  const kind = formData.get("feeding-kind") || null;
+  const milk = formData.get("milk-kind") || null;
+  const notes = $("#feeding-notes").value.trim().slice(0, 500);
+  if (kind || milk || notes) {
+    feedingDetails[selectedFeedingStart] = { kind, milk, notes };
+  } else {
+    delete feedingDetails[selectedFeedingStart];
+  }
+  save();
+  render();
+  renderHistory();
+  feedingDetailsDialog.close();
+});
+feedingDetailsDialog.addEventListener("close", () => {
+  selectedFeedingStart = null;
+});
 $("#log-diaper").addEventListener("click", () => logDiaperChange());
 undoDiaper.addEventListener("click", undoLastDiaperChange);
 $("#view-diapers").addEventListener("click", () => {
