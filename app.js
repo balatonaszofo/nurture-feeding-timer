@@ -8,6 +8,11 @@ let feedingHistory = [...new Set([...storedFeedings, state.lastFeeding].filter(v
   if (!value) return false;
   return !Number.isNaN(new Date(value).getTime());
 }))].sort((a, b) => new Date(a) - new Date(b));
+const storedDiapers = Array.isArray(state.diaperHistory) ? state.diaperHistory : [];
+let diaperHistory = [...new Set(storedDiapers.filter(value => {
+  if (!value) return false;
+  return !Number.isNaN(new Date(value).getTime());
+}))].sort((a, b) => new Date(a) - new Date(b));
 let lastFeeding = feedingHistory.length ? new Date(feedingHistory[feedingHistory.length - 1]) : null;
 let alarmEnabled = state.alarmEnabled === true;
 let lastAlarmedFor = state.lastAlarmedFor || null;
@@ -33,12 +38,16 @@ const alarmStatus = $("#alarm-status");
 const testAlarm = $("#test-alarm");
 const historyDialog = $("#history-dialog");
 const feedingTimetable = $("#feeding-timetable");
+const diaperHistoryDialog = $("#diaper-history-dialog");
+const diaperTimetable = $("#diaper-timetable");
+const undoDiaper = $("#undo-diaper");
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     intervalHours,
     lastFeeding: lastFeeding?.toISOString() || null,
     feedingHistory,
+    diaperHistory,
     alarmEnabled,
     lastAlarmedFor
   }));
@@ -203,6 +212,59 @@ function renderHistory() {
   });
 }
 
+function renderDiaperHistory() {
+  const changes = diaperHistory.map(value => new Date(value)).filter(date => !Number.isNaN(date.getTime())).sort((a, b) => b - a);
+  const todayKey = localDayKey(new Date());
+  const todayCount = changes.filter(date => localDayKey(date) === todayKey).length;
+  $("#diaper-count").textContent = todayCount;
+  $("#diaper-count-label").textContent = todayCount === 1 ? "change today" : "changes today";
+  $("#last-diaper").textContent = changes.length ? `Last change: ${formatDateTime(changes[0])} · ${changes.length} total` : "No diaper changes logged yet";
+  $("#diaper-dialog-summary").textContent = `${todayCount} ${todayCount === 1 ? "change" : "changes"} today · ${changes.length} total`;
+  undoDiaper.disabled = changes.length === 0;
+  diaperTimetable.replaceChildren();
+
+  if (!changes.length) {
+    const empty = document.createElement("p");
+    empty.className = "history-empty";
+    empty.textContent = "Your logged diaper changes will appear here.";
+    diaperTimetable.append(empty);
+    return;
+  }
+
+  const groups = new Map();
+  changes.forEach((date, index) => {
+    const key = localDayKey(date);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({ date, olderChange: changes[index + 1] || null });
+  });
+
+  groups.forEach((entries, key) => {
+    const section = document.createElement("section");
+    section.className = "timetable-day diaper-day";
+    const heading = document.createElement("h3");
+    heading.textContent = key === todayKey ? "Today" : new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric" }).format(entries[0].date);
+    const list = document.createElement("ol");
+    list.className = "timetable-list";
+    entries.forEach(({ date, olderChange }) => {
+      const item = document.createElement("li");
+      item.className = "timetable-item";
+      const dot = document.createElement("span");
+      dot.className = "timetable-dot diaper-dot";
+      dot.setAttribute("aria-hidden", "true");
+      const time = document.createElement("time");
+      time.dateTime = date.toISOString();
+      time.textContent = formatTime(date);
+      const detail = document.createElement("span");
+      detail.className = "timetable-gap";
+      detail.textContent = olderChange ? formatGap(date - olderChange) : "First logged change";
+      item.append(dot, time, detail);
+      list.append(item);
+    });
+    section.append(heading, list);
+    diaperTimetable.append(section);
+  });
+}
+
 function setGreeting() {
   const hour = new Date().getHours();
   $("#greeting").textContent = hour < 12 ? "GOOD MORNING" : hour < 18 ? "GOOD AFTERNOON" : "GOOD EVENING";
@@ -346,6 +408,22 @@ function logFeeding(date = new Date(), replaceLatest = false) {
   void syncPushReminder();
 }
 
+function logDiaperChange(date = new Date()) {
+  diaperHistory.push(date.toISOString());
+  diaperHistory = [...new Set(diaperHistory)].sort((a, b) => new Date(a) - new Date(b));
+  save();
+  renderDiaperHistory();
+  $("#diaper-announcement").textContent = `Diaper change logged at ${formatTime(date)}.`;
+}
+
+function undoLastDiaperChange() {
+  if (!diaperHistory.length) return;
+  const removed = new Date(diaperHistory.pop());
+  save();
+  renderDiaperHistory();
+  $("#diaper-announcement").textContent = `Diaper change from ${formatTime(removed)} removed.`;
+}
+
 function openTimeDialog() {
   editingExistingFeeding = feedingHistory.length > 0;
   const date = lastFeeding || new Date();
@@ -355,6 +433,14 @@ function openTimeDialog() {
 }
 
 $("#feed-now").addEventListener("click", () => logFeeding());
+$("#log-diaper").addEventListener("click", () => logDiaperChange());
+undoDiaper.addEventListener("click", undoLastDiaperChange);
+$("#view-diapers").addEventListener("click", () => {
+  renderDiaperHistory();
+  diaperHistoryDialog.showModal();
+});
+$("#close-diaper-history").addEventListener("click", () => diaperHistoryDialog.close());
+$("#done-diaper-history").addEventListener("click", () => diaperHistoryDialog.close());
 $("#edit-time").addEventListener("click", openTimeDialog);
 $("#time-form").addEventListener("submit", (event) => {
   if (event.submitter?.value === "cancel") return;
@@ -427,9 +513,11 @@ document.addEventListener("pointerdown", () => {
 setGreeting();
 render();
 renderHistory();
+renderDiaperHistory();
 updateAlarmUI();
 setInterval(render, 1000);
 setInterval(renderHistory, 60000);
+setInterval(renderDiaperHistory, 60000);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {

@@ -10,6 +10,7 @@ A small, calming feeding timer that remembers the last feeding and automatically
 - See a live countdown and approximate next feeding time
 - Enable an on-device chime, vibration, and notification when the timer ends
 - Count feedings and review a complete timetable grouped by day
+- Log diaper changes, see today's count, undo mistakes, and review change history
 - Keep your settings on the device with local storage
 - Install from the browser as a home-screen app
 - Work offline after the first visit
@@ -31,7 +32,7 @@ Once GitHub Pages is enabled, open the published site on your phone.
 2. Open the browser menu.
 3. Choose **Install app** or **Add to Home screen**.
 
-All feeding data stays in that browser on that device. It is not uploaded to a server or shared between devices.
+All feeding and diaper-change data stays in that browser on that device. It is not uploaded to a server or shared between devices.
 
 The alarm is designed for use while Nurture is active. Mobile operating systems may suspend browser timers when the app is in the background, even if it still appears open. Guaranteed background notifications require server-backed web push or a native mobile app.
 

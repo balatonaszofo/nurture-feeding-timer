@@ -61,6 +61,27 @@
         <p id="last-fed" class="last-fed">No feeding logged yet</p>
       </section>
 
+      <section class="diaper-card" aria-labelledby="diaper-title">
+        <div class="diaper-copy">
+          <p class="eyebrow">CARE LOG</p>
+          <h2 id="diaper-title">Diaper changes</h2>
+          <p id="last-diaper">No diaper changes logged yet</p>
+        </div>
+        <div class="diaper-count-wrap" aria-label="Diaper changes today">
+          <strong id="diaper-count">0</strong>
+          <span id="diaper-count-label">changes today</span>
+        </div>
+        <button id="log-diaper" class="diaper-log-button" type="button">
+          <span aria-hidden="true">＋</span>
+          Log diaper change
+        </button>
+        <div class="diaper-actions">
+          <button id="undo-diaper" type="button" disabled>Undo last</button>
+          <button id="view-diapers" type="button">View history <span aria-hidden="true">→</span></button>
+        </div>
+        <p id="diaper-announcement" class="sr-only" aria-live="polite"></p>
+      </section>
+
       <section class="alarm-card" aria-labelledby="alarm-title">
         <span class="alarm-icon" aria-hidden="true">♩</span>
         <div class="alarm-copy">
@@ -139,6 +160,17 @@
         <p id="history-dialog-summary" class="history-dialog-summary"></p>
         <div id="feeding-timetable" class="feeding-timetable"></div>
         <button id="done-history" class="dialog-save" type="button">Done</button>
+      </div>
+    </dialog>
+
+    <dialog id="diaper-history-dialog" class="time-dialog history-dialog">
+      <div class="history-dialog-content">
+        <button id="close-diaper-history" class="close-dialog" type="button" aria-label="Close">×</button>
+        <p class="eyebrow">CARE HISTORY</p>
+        <h2>Diaper changes</h2>
+        <p id="diaper-dialog-summary" class="history-dialog-summary"></p>
+        <div id="diaper-timetable" class="feeding-timetable"></div>
+        <button id="done-diaper-history" class="dialog-save" type="button">Done</button>
       </div>
     </dialog>
 
