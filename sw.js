@@ -1,5 +1,5 @@
-const CACHE = "nurture-v9";
-const ASSETS = ["./", "./index.html", "./styles.css", "./push-config.js", "./app.js", "./manifest.webmanifest", "./icon.svg"];
+const CACHE = "nurture-v10";
+const ASSETS = ["./", "./index.html", "./styles.css?v=10", "./push-config.js?v=10", "./app.js?v=10", "./manifest.webmanifest?v=10", "./icon.svg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
@@ -13,6 +13,16 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin === self.location.origin) {
+    event.respondWith(fetch(event.request).catch(async () => {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+      if (event.request.mode === "navigate") return caches.match("./");
+      return Response.error();
+    }));
+    return;
+  }
   event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request)));
 });
 

@@ -596,8 +596,20 @@ setInterval(renderHistory, 60000);
 setInterval(renderDiaperHistory, 60000);
 
 if ("serviceWorker" in navigator) {
+  const controlledAtLoad = Boolean(navigator.serviceWorker.controller);
+  let reloadingForUpdate = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!controlledAtLoad || reloadingForUpdate) return;
+    reloadingForUpdate = true;
+    window.location.reload();
+  });
   window.addEventListener("load", async () => {
-    await navigator.serviceWorker.register("./sw.js");
+    const registration = await navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" });
+    try {
+      await registration.update();
+    } catch {
+      // The current offline version keeps working until connectivity returns.
+    }
     void syncPushReminder();
   });
 }
