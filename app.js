@@ -3,6 +3,8 @@ const PUSH_DEVICE_KEY = "nurture-push-device-id";
 const PUSH_SERVER = String(window.NURTURE_PUSH_SERVER || "").replace(/\/$/, "");
 const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
 let intervalHours = Number(state.intervalHours) || 3;
+let darkMode = state.darkMode === true;
+document.documentElement.dataset.theme = darkMode ? "dark" : "light";
 const storedFeedings = Array.isArray(state.feedingHistory) ? state.feedingHistory : [];
 let feedingHistory = [...new Set([...storedFeedings, state.lastFeeding].filter(value => {
   if (!value) return false;
@@ -30,6 +32,12 @@ let diaperHistory = [...new Set(storedDiapers.filter(value => {
   if (!value) return false;
   return !Number.isNaN(new Date(value).getTime());
 }))].sort((a, b) => new Date(a) - new Date(b));
+const diaperDetails = {};
+const storedDiaperDetails = state.diaperDetails && typeof state.diaperDetails === "object" && !Array.isArray(state.diaperDetails) ? state.diaperDetails : {};
+Object.entries(storedDiaperDetails).forEach(([changedAt, details]) => {
+  if (Number.isNaN(new Date(changedAt).getTime()) || !details || typeof details !== "object") return;
+  if (["pee", "poo", "both"].includes(details.type)) diaperDetails[changedAt] = { type: details.type };
+});
 let lastFeeding = feedingHistory.length ? new Date(feedingHistory[feedingHistory.length - 1]) : null;
 let alarmEnabled = state.alarmEnabled === true;
 let lastAlarmedFor = state.lastAlarmedFor || null;
@@ -66,6 +74,9 @@ const feedingDetailsForm = $("#feeding-details-form");
 const diaperHistoryDialog = $("#diaper-history-dialog");
 const diaperTimetable = $("#diaper-timetable");
 const undoDiaper = $("#undo-diaper");
+const diaperLogDialog = $("#diaper-log-dialog");
+const diaperLogForm = $("#diaper-log-form");
+const darkModeToggle = $("#dark-mode-toggle");
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -75,6 +86,8 @@ function save() {
     feedingSessions,
     feedingDetails,
     diaperHistory,
+    diaperDetails,
+    darkMode,
     alarmEnabled,
     lastAlarmedFor
   }));
@@ -232,6 +245,10 @@ function milkKindLabel(value) {
   return value === "breast-milk" ? "Breast milk" : value === "formula" ? "Formula" : "";
 }
 
+function diaperTypeLabel(value) {
+  return value === "pee" ? "Pee" : value === "poo" ? "Poo" : value === "both" ? "Pee + poo" : "Type not recorded";
+}
+
 function renderHistory() {
   const feedings = feedingHistory.map(value => new Date(value)).filter(date => !Number.isNaN(date.getTime())).sort((a, b) => b - a);
   const todayKey = localDayKey(new Date());
@@ -329,7 +346,8 @@ function renderDiaperHistory() {
   const todayCount = changes.filter(date => localDayKey(date) === todayKey).length;
   $("#diaper-count").textContent = todayCount;
   $("#diaper-count-label").textContent = todayCount === 1 ? "change today" : "changes today";
-  $("#last-diaper").textContent = changes.length ? `Last change: ${formatDateTime(changes[0])} · ${changes.length} total` : "No diaper changes logged yet";
+  const latestChangeType = changes.length ? diaperTypeLabel(diaperDetails[changes[0].toISOString()]?.type) : "";
+  $("#last-diaper").textContent = changes.length ? `Last change: ${formatDateTime(changes[0])} · ${latestChangeType} · ${changes.length} total` : "No diaper changes logged yet";
   $("#diaper-dialog-summary").textContent = `${todayCount} ${todayCount === 1 ? "change" : "changes"} today · ${changes.length} total`;
   undoDiaper.disabled = changes.length === 0;
   diaperTimetable.replaceChildren();
@@ -346,7 +364,7 @@ function renderDiaperHistory() {
   changes.forEach((date, index) => {
     const key = localDayKey(date);
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push({ date, olderChange: changes[index + 1] || null });
+    groups.get(key).push({ date, olderChange: changes[index + 1] || null, type: diaperDetails[date.toISOString()]?.type || null });
   });
 
   groups.forEach((entries, key) => {
@@ -356,7 +374,7 @@ function renderDiaperHistory() {
     heading.textContent = key === todayKey ? "Today" : new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric" }).format(entries[0].date);
     const list = document.createElement("ol");
     list.className = "timetable-list";
-    entries.forEach(({ date, olderChange }) => {
+    entries.forEach(({ date, olderChange, type }) => {
       const item = document.createElement("li");
       item.className = "timetable-item";
       const dot = document.createElement("span");
@@ -365,10 +383,16 @@ function renderDiaperHistory() {
       const time = document.createElement("time");
       time.dateTime = date.toISOString();
       time.textContent = formatTime(date);
-      const detail = document.createElement("span");
-      detail.className = "timetable-gap";
-      detail.textContent = olderChange ? formatGap(date - olderChange) : "First logged change";
-      item.append(dot, time, detail);
+      const details = document.createElement("span");
+      details.className = "timetable-details";
+      const typeLabel = document.createElement("strong");
+      typeLabel.className = "diaper-type-label";
+      typeLabel.textContent = diaperTypeLabel(type);
+      const gap = document.createElement("span");
+      gap.className = "timetable-gap";
+      gap.textContent = olderChange ? formatGap(date - olderChange) : "First logged change";
+      details.append(typeLabel, gap);
+      item.append(dot, time, details);
       list.append(item);
     });
     section.append(heading, list);
@@ -396,6 +420,13 @@ function updateAlarmUI(message = "") {
   } else {
     alarmStatus.textContent = "On · chime and vibration while Nurture is open";
   }
+}
+
+function applyTheme() {
+  document.documentElement.dataset.theme = darkMode ? "dark" : "light";
+  darkModeToggle.setAttribute("aria-checked", darkMode);
+  darkModeToggle.textContent = darkMode ? "On" : "Off";
+  $("meta[name='theme-color']").setAttribute("content", darkMode ? "#172223" : "#fffaf6");
 }
 
 async function prepareAudio() {
@@ -555,8 +586,10 @@ function stopFeeding() {
   renderHistory();
 }
 
-function logDiaperChange(date = new Date()) {
-  diaperHistory.push(date.toISOString());
+function logDiaperChange(date = new Date(), type = null) {
+  const changedAt = date.toISOString();
+  diaperHistory.push(changedAt);
+  if (["pee", "poo", "both"].includes(type)) diaperDetails[changedAt] = { type };
   diaperHistory = [...new Set(diaperHistory)].sort((a, b) => new Date(a) - new Date(b));
   save();
   renderDiaperHistory();
@@ -565,7 +598,9 @@ function logDiaperChange(date = new Date()) {
 
 function undoLastDiaperChange() {
   if (!diaperHistory.length) return;
-  const removed = new Date(diaperHistory.pop());
+  const removedAt = diaperHistory.pop();
+  delete diaperDetails[removedAt];
+  const removed = new Date(removedAt);
   save();
   renderDiaperHistory();
   $("#diaper-announcement").textContent = `Diaper change from ${formatTime(removed)} removed.`;
@@ -623,7 +658,18 @@ feedingDetailsForm.addEventListener("submit", event => {
 feedingDetailsDialog.addEventListener("close", () => {
   selectedFeedingStart = null;
 });
-$("#log-diaper").addEventListener("click", () => logDiaperChange());
+$("#log-diaper").addEventListener("click", () => {
+  diaperLogForm.reset();
+  diaperLogDialog.showModal();
+});
+diaperLogForm.addEventListener("submit", event => {
+  if (event.submitter?.value === "cancel") return;
+  event.preventDefault();
+  const type = new FormData(diaperLogForm).get("diaper-type");
+  if (!["pee", "poo", "both"].includes(type)) return;
+  logDiaperChange(new Date(), type);
+  diaperLogDialog.close();
+});
 undoDiaper.addEventListener("click", undoLastDiaperChange);
 $("#view-diapers").addEventListener("click", () => {
   renderDiaperHistory();
@@ -664,6 +710,12 @@ $("#custom-hours").addEventListener("change", (event) => {
   } else render();
 });
 
+darkModeToggle.addEventListener("click", () => {
+  darkMode = !darkMode;
+  applyTheme();
+  save();
+});
+
 alarmToggle.addEventListener("click", async () => {
   if (alarmEnabled) {
     alarmEnabled = false;
@@ -701,6 +753,7 @@ document.addEventListener("pointerdown", () => {
 }, { once: true });
 
 setGreeting();
+applyTheme();
 render();
 renderHistory();
 renderDiaperHistory();

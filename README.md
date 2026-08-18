@@ -14,6 +14,8 @@ A small, calming feeding timer that remembers the last feeding and automatically
 - Enable an on-device chime, vibration, and notification when the timer ends
 - Count feedings and review a complete timetable grouped by day
 - Log diaper changes, see today's count, undo mistakes, and review change history
+- Classify diaper changes as pee, poo, or both
+- Switch between the light and dark appearance
 - Keep your settings on the device with local storage
 - Install from the browser as a home-screen app
 - Work offline after the first visit

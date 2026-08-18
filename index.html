@@ -8,13 +8,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Nurture" />
     <title>Nurture · Feeding Timer</title>
-    <link rel="manifest" href="manifest.webmanifest?v=12" />
+    <link rel="manifest" href="manifest.webmanifest?v=13" />
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=12" />
+    <link rel="stylesheet" href="styles.css?v=13" />
   </head>
   <body>
     <main class="app-shell">
@@ -136,6 +136,14 @@
             <span>hours</span>
           </div>
         </div>
+
+        <div class="theme-setting">
+          <div>
+            <span>Appearance</span>
+            <strong>Dark mode</strong>
+          </div>
+          <button id="dark-mode-toggle" class="alarm-toggle theme-toggle" type="button" role="switch" aria-checked="false">Off</button>
+        </div>
       </section>
 
       <section class="tip-card">
@@ -197,6 +205,23 @@
       </form>
     </dialog>
 
+    <dialog id="diaper-log-dialog" class="time-dialog diaper-log-dialog">
+      <form method="dialog" id="diaper-log-form">
+        <button class="close-dialog" value="cancel" aria-label="Close">×</button>
+        <p class="eyebrow">LOG A DIAPER</p>
+        <h2>What was in the diaper?</h2>
+        <fieldset>
+          <legend class="sr-only">Diaper type</legend>
+          <div class="detail-options diaper-options">
+            <label class="detail-choice"><input type="radio" name="diaper-type" value="pee" required /><span>Pee</span></label>
+            <label class="detail-choice"><input type="radio" name="diaper-type" value="poo" /><span>Poo</span></label>
+            <label class="detail-choice"><input type="radio" name="diaper-type" value="both" /><span>Pee + poo</span></label>
+          </div>
+        </fieldset>
+        <button class="dialog-save" value="default">Log diaper change</button>
+      </form>
+    </dialog>
+
     <dialog id="diaper-history-dialog" class="time-dialog history-dialog">
       <div class="history-dialog-content">
         <button id="close-diaper-history" class="close-dialog" type="button" aria-label="Close">×</button>
@@ -208,7 +233,7 @@
       </div>
     </dialog>
 
-    <script src="push-config.js?v=12"></script>
-    <script src="app.js?v=12"></script>
+    <script src="push-config.js?v=13"></script>
+    <script src="app.js?v=13"></script>
   </body>
 </html>
