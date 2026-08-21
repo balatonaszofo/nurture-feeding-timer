@@ -77,6 +77,8 @@ const undoDiaper = $("#undo-diaper");
 const diaperLogDialog = $("#diaper-log-dialog");
 const diaperLogForm = $("#diaper-log-form");
 const darkModeToggle = $("#dark-mode-toggle");
+const exportCareLogButton = $("#export-care-log");
+const exportStatus = $("#export-status");
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -249,6 +251,131 @@ function diaperTypeLabel(value) {
   return value === "pee" ? "Pee" : value === "poo" ? "Poo" : value === "both" ? "Pee + poo" : "Type not recorded";
 }
 
+function localDateValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function localTimeValue(date) {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function csvCell(value) {
+  let text = value == null ? "" : String(value);
+  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function buildCareLogCsv() {
+  const sessionsByStart = new Map(feedingSessions.map(session => [session.startAt, session]));
+  const events = [];
+
+  feedingHistory.forEach(startAt => {
+    const started = new Date(startAt);
+    if (Number.isNaN(started.getTime())) return;
+    const metadata = feedingDetails[startAt] || {};
+    const session = sessionsByStart.get(startAt);
+    let ended = null;
+    let sessionStatus = "Not tracked";
+    let durationMinutes = "";
+    if (session) {
+      ended = session.endAt ? new Date(session.endAt) : null;
+      const durationEnd = ended && !Number.isNaN(ended.getTime()) ? ended : new Date();
+      durationMinutes = Math.max(0, Math.round((durationEnd - started) / 6000) / 10);
+      sessionStatus = ended && !Number.isNaN(ended.getTime()) ? "Completed" : "In progress";
+    }
+    events.push({
+      timestamp: started.getTime(),
+      cells: [
+        localDateValue(started), localTimeValue(started), "Feeding",
+        feedingKindLabel(metadata.kind), milkKindLabel(metadata.milk), sessionStatus,
+        ended && !Number.isNaN(ended.getTime()) ? localDateValue(ended) : "",
+        ended && !Number.isNaN(ended.getTime()) ? localTimeValue(ended) : "",
+        durationMinutes, metadata.notes || "", ""
+      ]
+    });
+  });
+
+  diaperHistory.forEach(changedAt => {
+    const changed = new Date(changedAt);
+    if (Number.isNaN(changed.getTime())) return;
+    events.push({
+      timestamp: changed.getTime(),
+      cells: [
+        localDateValue(changed), localTimeValue(changed), "Diaper change",
+        "", "", "", "", "", "", "", diaperTypeLabel(diaperDetails[changedAt]?.type)
+      ]
+    });
+  });
+
+  events.sort((a, b) => a.timestamp - b.timestamp);
+  const headings = [
+    "Date", "Time", "Event", "Feeding type", "Milk type", "Session status",
+    "End date", "End time", "Duration (minutes)", "Notes", "Diaper contents"
+  ];
+  return [headings, ...events.map(event => event.cells)].map(row => row.map(csvCell).join(",")).join("\r\n");
+}
+
+function updateExportAvailability() {
+  const isEmpty = !feedingHistory.length && !diaperHistory.length;
+  exportCareLogButton.disabled = isEmpty;
+  if (isEmpty) {
+    exportStatus.textContent = "Log a feeding or diaper change to enable export.";
+  } else if (exportStatus.textContent.startsWith("Log a feeding")) {
+    exportStatus.textContent = "Share to Google Sheets or download a CSV file.";
+  }
+}
+
+function downloadCareLog(file) {
+  const url = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = file.name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function exportCareLog() {
+  if (!feedingHistory.length && !diaperHistory.length) return;
+  const today = localDateValue(new Date());
+  const file = new File(["\ufeff", buildCareLogCsv()], `nurture-care-log-${today}.csv`, { type: "text/csv;charset=utf-8" });
+  exportCareLogButton.disabled = true;
+  exportStatus.textContent = "Preparing your care log…";
+
+  try {
+    let canShareFile = false;
+    try {
+      canShareFile = Boolean(navigator.share && navigator.canShare?.({ files: [file] }));
+    } catch {
+      // Browsers that cannot inspect shared files still receive a regular download.
+    }
+    if (canShareFile) {
+      try {
+        await navigator.share({
+          title: "Nurture care log",
+          text: "Feeding and diaper history from Nurture",
+          files: [file]
+        });
+        exportStatus.textContent = "Care log shared. Open the CSV in Google Sheets.";
+        return;
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          exportStatus.textContent = "Export canceled. Your records are unchanged.";
+          return;
+        }
+      }
+    }
+    downloadCareLog(file);
+    exportStatus.textContent = "Care log downloaded. Open the CSV file in Google Sheets.";
+  } finally {
+    exportCareLogButton.disabled = false;
+  }
+}
+
 function renderHistory() {
   const feedings = feedingHistory.map(value => new Date(value)).filter(date => !Number.isNaN(date.getTime())).sort((a, b) => b - a);
   const todayKey = localDayKey(new Date());
@@ -257,6 +384,7 @@ function renderHistory() {
   $("#feeding-count-label").textContent = todayCount === 1 ? "feeding" : "feedings";
   $("#history-total").textContent = feedings.length ? `${feedings.length} total logged on this device` : "No feedings logged yet";
   $("#history-dialog-summary").textContent = `${todayCount} ${todayCount === 1 ? "feeding" : "feedings"} today · ${feedings.length} total`;
+  updateExportAvailability();
   feedingTimetable.replaceChildren();
 
   if (!feedings.length) {
@@ -349,6 +477,7 @@ function renderDiaperHistory() {
   const latestChangeType = changes.length ? diaperTypeLabel(diaperDetails[changes[0].toISOString()]?.type) : "";
   $("#last-diaper").textContent = changes.length ? `Last change: ${formatDateTime(changes[0])} · ${latestChangeType} · ${changes.length} total` : "No diaper changes logged yet";
   $("#diaper-dialog-summary").textContent = `${todayCount} ${todayCount === 1 ? "change" : "changes"} today · ${changes.length} total`;
+  updateExportAvailability();
   undoDiaper.disabled = changes.length === 0;
   diaperTimetable.replaceChildren();
 
@@ -692,6 +821,7 @@ $("#view-timetable").addEventListener("click", () => {
 });
 $("#close-history").addEventListener("click", () => historyDialog.close());
 $("#done-history").addEventListener("click", () => historyDialog.close());
+exportCareLogButton.addEventListener("click", () => void exportCareLog());
 document.querySelectorAll(".interval-option").forEach(button => button.addEventListener("click", () => {
   intervalHours = Number(button.dataset.hours);
   lastAlarmedFor = null;

@@ -8,13 +8,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Nurture" />
     <title>Nurture · Feeding Timer</title>
-    <link rel="manifest" href="manifest.webmanifest?v=13" />
+    <link rel="manifest" href="manifest.webmanifest?v=14" />
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=13" />
+    <link rel="stylesheet" href="styles.css?v=14" />
   </head>
   <body>
     <main class="app-shell">
@@ -110,7 +110,11 @@
           <strong id="feeding-count">0</strong>
           <span id="feeding-count-label">feedings</span>
         </div>
-        <button id="view-timetable" class="view-timetable" type="button">View timetable <span aria-hidden="true">→</span></button>
+        <div class="history-actions">
+          <button id="view-timetable" class="view-timetable" type="button">View timetable <span aria-hidden="true">→</span></button>
+          <button id="export-care-log" class="export-care-log" type="button">Export care log <span aria-hidden="true">↓</span></button>
+        </div>
+        <p id="export-status" class="export-status" role="status" aria-live="polite">Share to Google Sheets or download a CSV file.</p>
       </section>
 
       <section class="settings-card" aria-labelledby="settings-title">
@@ -233,7 +237,7 @@
       </div>
     </dialog>
 
-    <script src="push-config.js?v=13"></script>
-    <script src="app.js?v=13"></script>
+    <script src="push-config.js?v=14"></script>
+    <script src="app.js?v=14"></script>
   </body>
 </html>
