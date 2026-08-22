@@ -10,6 +10,7 @@ test("website and install metadata use the Nurture Daily name", () => {
 
   assert.equal(manifest.name, "Nurture Daily");
   assert.equal(manifest.short_name, "Nurture Daily");
+  assert.equal(manifest.theme_color, "#fffaf6");
   assert.match(page, /<title>Nurture Daily · Feeding Timer<\/title>/);
   assert.match(page, /apple-mobile-web-app-title" content="Nurture Daily"/);
   assert.equal((page.match(/class="brand-daily">daily/g) || []).length, 2);

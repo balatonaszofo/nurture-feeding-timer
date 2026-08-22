@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   LEGACY_STORAGE_KEY,
   createLocalProfileId,
+  friendlyCloudError,
   isFirebaseConfigured,
   mergeCareStates,
   migrateLegacyState,
@@ -70,6 +71,12 @@ test("Firebase connection requires the complete public web config", () => {
   assert.equal(isFirebaseConfigured({}), false);
   assert.equal(isFirebaseConfigured({ apiKey: "YOUR_KEY", authDomain: "x", projectId: "x", appId: "x" }), false);
   assert.equal(isFirebaseConfigured({ apiKey: "key", authDomain: "project.firebaseapp.com", projectId: "project", appId: "app" }), true);
+});
+
+test("cloud sync errors distinguish setup problems from temporary outages", () => {
+  assert.match(friendlyCloudError({ code: "permission-denied" }), /publish Firestore rules/);
+  assert.match(friendlyCloudError({ code: "firestore\/unavailable" }), /temporarily unavailable/);
+  assert.match(friendlyCloudError({ code: "unauthenticated" }), /sign in again/);
 });
 
 test("Firestore rules bind every profile document to its authenticated UID", () => {

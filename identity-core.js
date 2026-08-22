@@ -25,6 +25,15 @@ export function isFirebaseConfigured(config) {
   });
 }
 
+export function friendlyCloudError(error) {
+  const code = String(error?.code || "").toLowerCase();
+  if (code.endsWith("permission-denied")) return "Cloud permission needs setup · publish Firestore rules";
+  if (code.endsWith("unauthenticated")) return "Cloud session expired · sign in again";
+  if (code.endsWith("failed-precondition") || code.endsWith("not-found")) return "Cloud database setup is incomplete";
+  if (code.endsWith("unavailable") || code.endsWith("deadline-exceeded") || code.includes("network")) return "Cloud is temporarily unavailable · tap Retry";
+  return "Saved on this device · tap Retry for cloud backup";
+}
+
 export function createLocalProfileId(storage, randomUUID) {
   const existing = storage.getItem(LOCAL_PROFILE_KEY);
   if (existing) return existing;

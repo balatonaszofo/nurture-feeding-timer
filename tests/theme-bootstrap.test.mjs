@@ -8,7 +8,7 @@ const bootstrap = html.match(/<script data-theme-bootstrap>([\s\S]*?)<\/script>/
 
 function runThemeBootstrap(savedState, activeProfile = null) {
   const themeMeta = {
-    content: "#111a1b",
+    content: "#fffaf6",
     setAttribute(name, value) {
       if (name === "content") this.content = value;
     }
@@ -34,13 +34,14 @@ function runThemeBootstrap(savedState, activeProfile = null) {
 
 test("saved dark mode is applied before the app renders", () => {
   assert.ok(bootstrap, "theme bootstrap script is present in the document head");
-  assert.match(html, /apple-mobile-web-app-status-bar-style" content="black"/);
+  assert.match(html, /apple-mobile-web-app-status-bar-style" content="default"/);
   const { root, themeMeta } = runThemeBootstrap({ darkMode: true });
   assert.equal(root.dataset.theme, "dark");
   assert.equal(themeMeta.content, "#111a1b");
 });
 
 test("saved light mode keeps the status bar light", () => {
+  assert.match(html, /meta name="theme-color" content="#fffaf6"/);
   const { root, themeMeta } = runThemeBootstrap({ darkMode: false });
   assert.equal(root.dataset.theme, "light");
   assert.equal(themeMeta.content, "#fffaf6");

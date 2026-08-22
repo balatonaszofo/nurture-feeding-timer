@@ -3,13 +3,14 @@ import {
   LEGACY_STORAGE_KEY,
   LEGACY_MIGRATED_KEY,
   createLocalProfileId,
+  friendlyCloudError,
   hasCareData,
   isFirebaseConfigured,
   mergeCareStates,
   migrateLegacyState,
   profileStorageKey,
   safeParseState
-} from "./identity-core.js";
+} from "./identity-core.js?v=22";
 
 const FIREBASE_VERSION = "12.17.1";
 const AUTH_CHOICE_KEY = "nurture-auth-choice";
@@ -26,6 +27,7 @@ const accountDialog = document.querySelector("#account-dialog");
 const accountName = document.querySelector("#account-name");
 const accountDetail = document.querySelector("#account-detail");
 const accountSync = document.querySelector("#account-sync");
+const accountSyncRetry = document.querySelector("#account-sync-retry");
 const accountGoogle = document.querySelector("#account-google");
 const accountExit = document.querySelector("#account-exit");
 
@@ -104,6 +106,8 @@ function waitForInitialUser(services) {
 function setSyncStatus(message, state = "") {
   accountSync.textContent = message;
   accountSync.dataset.state = state;
+  accountSyncRetry.hidden = state !== "offline";
+  if (state === "offline") accountSyncRetry.disabled = false;
 }
 
 function createCloudController(user, services) {
@@ -112,7 +116,7 @@ function createCloudController(user, services) {
   let saveTimer = null;
 
   async function writeNow() {
-    if (!pendingState) return;
+    if (!pendingState) return true;
     const stateToSave = pendingState;
     pendingState = null;
     setSyncStatus("Saving securely…", "saving");
@@ -123,9 +127,11 @@ function createCloudController(user, services) {
         updatedAt: services.firestoreSdk.serverTimestamp()
       });
       setSyncStatus("Private cloud backup is up to date", "saved");
-    } catch {
+      return true;
+    } catch (error) {
       pendingState = stateToSave;
-      setSyncStatus("Saved on this device · cloud sync will retry", "offline");
+      setSyncStatus(friendlyCloudError(error), "offline");
+      return false;
     }
   }
 
@@ -147,10 +153,15 @@ function createCloudController(user, services) {
           setSyncStatus("Private cloud backup is up to date", "saved");
         }
         return merged;
-      } catch {
-        setSyncStatus("Using this device · cloud unavailable", "offline");
+      } catch (error) {
+        setSyncStatus(friendlyCloudError(error), "offline");
         return localState;
       }
+    },
+    retry(state) {
+      pendingState = state;
+      clearTimeout(saveTimer);
+      return writeNow();
     },
     flush() {
       clearTimeout(saveTimer);
@@ -206,7 +217,7 @@ async function openApp(identity, sourceState = {}) {
   document.body.classList.remove("auth-open");
   if (!appLoaded) {
     appLoaded = true;
-    await import("./app.js?v=21");
+    await import("./app.js?v=22");
   }
 }
 
@@ -350,6 +361,11 @@ accountButton.addEventListener("click", () => accountDialog.showModal());
 document.querySelector("#close-account").addEventListener("click", () => accountDialog.close());
 document.querySelector("#done-account").addEventListener("click", () => accountDialog.close());
 accountGoogle.addEventListener("click", () => void continueWithGoogle(true));
+accountSyncRetry.addEventListener("click", async () => {
+  if (!window.NURTURE_CLOUD) return;
+  accountSyncRetry.disabled = true;
+  await window.NURTURE_CLOUD.retry(currentProfileState());
+});
 accountExit.addEventListener("click", async () => {
   if (activeIdentity?.kind === "google" && firebaseServices?.auth.currentUser) {
     await firebaseServices.authSdk.signOut(firebaseServices.auth);
