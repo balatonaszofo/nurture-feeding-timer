@@ -85,6 +85,8 @@ const diaperLogForm = $("#diaper-log-form");
 const darkModeToggle = $("#dark-mode-toggle");
 const exportCareLogButton = $("#export-care-log");
 const exportStatus = $("#export-status");
+const importCareLogButton = $("#import-care-log");
+const importCareLogFile = $("#import-care-log-file");
 
 function save() {
   const stateToSave = {
@@ -381,6 +383,155 @@ async function exportCareLog() {
     exportStatus.textContent = "Care log downloaded. Open the CSV file in Google Sheets.";
   } finally {
     exportCareLogButton.disabled = false;
+  }
+}
+
+function parseCsvRows(text) {
+  const source = String(text || "").replace(/^\ufeff/, "");
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (quoted) {
+      if (character === '"' && source[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else if (character === '"') {
+        quoted = false;
+      } else {
+        field += character;
+      }
+    } else if (character === '"') {
+      quoted = true;
+    } else if (character === ",") {
+      row.push(field);
+      field = "";
+    } else if (character === "\n") {
+      row.push(field.replace(/\r$/, ""));
+      if (row.some(cell => cell !== "")) rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += character;
+    }
+  }
+  if (quoted) throw new Error("The CSV file has an unfinished quoted field.");
+  row.push(field.replace(/\r$/, ""));
+  if (row.some(cell => cell !== "")) rows.push(row);
+  return rows;
+}
+
+function csvLocalDateTime(dateValue, timeValue) {
+  const dateMatch = String(dateValue || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const timeMatch = String(timeValue || "").trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!dateMatch || !timeMatch) return null;
+  const [, year, month, day] = dateMatch.map(Number);
+  const hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2]);
+  const second = Number(timeMatch[3] || 0);
+  const date = new Date(year, month - 1, day, hour, minute, second);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day || date.getHours() !== hour || date.getMinutes() !== minute) return null;
+  return date.toISOString();
+}
+
+function parseCareLogCsv(text) {
+  const rows = parseCsvRows(text);
+  if (!rows.length) throw new Error("This CSV file is empty.");
+  const headings = rows[0].map(value => value.trim().toLowerCase());
+  const column = name => headings.indexOf(name.toLowerCase());
+  for (const required of ["Date", "Time", "Event"]) {
+    if (column(required) < 0) throw new Error("This does not look like a Nurture care-log CSV file.");
+  }
+  const valueAt = (row, name) => String(row[column(name)] || "").trim();
+  const imported = { feedingHistory: [], feedingSessions: [], feedingDetails: {}, diaperHistory: [], diaperDetails: {} };
+
+  rows.slice(1).forEach((row, rowIndex) => {
+    const eventName = valueAt(row, "Event").toLowerCase();
+    if (!eventName) return;
+    const startedAt = csvLocalDateTime(valueAt(row, "Date"), valueAt(row, "Time"));
+    if (!startedAt) throw new Error(`Row ${rowIndex + 2} has an invalid date or time.`);
+
+    if (eventName === "feeding") {
+      imported.feedingHistory.push(startedAt);
+      const typeValue = valueAt(row, "Feeding type").toLowerCase();
+      const milkValue = valueAt(row, "Milk type").toLowerCase();
+      let notes = valueAt(row, "Notes");
+      if (/^'[=+\-@]/.test(notes)) notes = notes.slice(1);
+      const details = {
+        kind: typeValue === "planned" ? "planned" : ["top-off", "top off"].includes(typeValue) ? "top-off" : null,
+        milk: milkValue === "formula" ? "formula" : milkValue === "breast milk" ? "breast-milk" : null,
+        notes: notes.slice(0, 500)
+      };
+      if (details.kind || details.milk || details.notes) imported.feedingDetails[startedAt] = details;
+
+      const sessionStatus = valueAt(row, "Session status").toLowerCase();
+      if (sessionStatus === "completed") {
+        const endedAt = csvLocalDateTime(valueAt(row, "End date"), valueAt(row, "End time"));
+        if (!endedAt || new Date(endedAt) < new Date(startedAt)) throw new Error(`Row ${rowIndex + 2} has an invalid feeding end time.`);
+        imported.feedingSessions.push({ startAt: startedAt, endAt: endedAt });
+      } else if (sessionStatus === "in progress") {
+        imported.feedingSessions.push({ startAt: startedAt, endAt: null });
+      }
+    } else if (eventName === "diaper change") {
+      imported.diaperHistory.push(startedAt);
+      const contents = valueAt(row, "Diaper contents").toLowerCase();
+      const type = contents === "pee" ? "pee" : contents === "poo" ? "poo" : ["pee + poo", "pee and poo"].includes(contents) ? "both" : null;
+      if (type) imported.diaperDetails[startedAt] = { type };
+    }
+  });
+
+  imported.feedingHistory = [...new Set(imported.feedingHistory)].sort((a, b) => new Date(a) - new Date(b));
+  imported.diaperHistory = [...new Set(imported.diaperHistory)].sort((a, b) => new Date(a) - new Date(b));
+  if (!imported.feedingHistory.length && !imported.diaperHistory.length) throw new Error("No feeding or diaper records were found in this CSV file.");
+  return imported;
+}
+
+function mergeImportedCareLog(imported) {
+  feedingHistory = [...new Set([...feedingHistory, ...imported.feedingHistory])].sort((a, b) => new Date(a) - new Date(b));
+  diaperHistory = [...new Set([...diaperHistory, ...imported.diaperHistory])].sort((a, b) => new Date(a) - new Date(b));
+
+  const sessions = new Map(imported.feedingSessions.map(session => [session.startAt, session]));
+  feedingSessions.forEach(session => {
+    const candidate = sessions.get(session.startAt);
+    if (!candidate || session.endAt || !candidate.endAt) sessions.set(session.startAt, session);
+  });
+  feedingSessions = [...sessions.values()].sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
+  Object.entries(imported.feedingDetails).forEach(([startAt, details]) => {
+    feedingDetails[startAt] = { ...details, ...(feedingDetails[startAt] || {}) };
+  });
+  Object.entries(imported.diaperDetails).forEach(([changedAt, details]) => {
+    diaperDetails[changedAt] = diaperDetails[changedAt] || details;
+  });
+  lastFeeding = feedingHistory.length ? new Date(feedingHistory[feedingHistory.length - 1]) : null;
+  lastAlarmedFor = null;
+  save();
+  render();
+  void syncPushReminder();
+}
+
+async function importCareLog(file) {
+  if (!file) return;
+  importCareLogButton.disabled = true;
+  exportStatus.textContent = "Reading your backup…";
+  try {
+    const imported = parseCareLogCsv(await file.text());
+    const feedingCount = imported.feedingHistory.length;
+    const diaperCount = imported.diaperHistory.length;
+    const confirmed = window.confirm(`Restore ${feedingCount} ${feedingCount === 1 ? "feeding" : "feedings"} and ${diaperCount} ${diaperCount === 1 ? "diaper change" : "diaper changes"}? Existing records will be kept.`);
+    if (!confirmed) {
+      exportStatus.textContent = "Restore canceled. Your records are unchanged.";
+      return;
+    }
+    mergeImportedCareLog(imported);
+    exportStatus.textContent = `Backup restored: ${feedingCount} ${feedingCount === 1 ? "feeding" : "feedings"} and ${diaperCount} ${diaperCount === 1 ? "diaper change" : "diaper changes"}.`;
+  } catch (error) {
+    exportStatus.textContent = error?.message || "Nurture couldn't read that CSV backup.";
+  } finally {
+    importCareLogButton.disabled = false;
+    importCareLogFile.value = "";
   }
 }
 
@@ -830,6 +981,8 @@ $("#view-timetable").addEventListener("click", () => {
 $("#close-history").addEventListener("click", () => historyDialog.close());
 $("#done-history").addEventListener("click", () => historyDialog.close());
 exportCareLogButton.addEventListener("click", () => void exportCareLog());
+importCareLogButton.addEventListener("click", () => importCareLogFile.click());
+importCareLogFile.addEventListener("change", event => void importCareLog(event.target.files?.[0]));
 document.querySelectorAll(".interval-option").forEach(button => button.addEventListener("click", () => {
   intervalHours = Number(button.dataset.hours);
   lastAlarmedFor = null;

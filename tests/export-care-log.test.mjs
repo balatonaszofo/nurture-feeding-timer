@@ -92,6 +92,35 @@ test("care log CSV preserves an untracked feeding", () => {
   assert.match(csv, /"Feeding","","","Not tracked","","","","",""/);
 });
 
+test("a Nurture CSV backup restores feeding details, sessions, and diapers", () => {
+  const app = loadApp({});
+  const csv = [
+    '"Date","Time","Event","Feeding type","Milk type","Session status","End date","End time","Duration (minutes)","Notes","Diaper contents"',
+    '"2026-08-20","11:30","Feeding","Top-off","Formula","Completed","2026-08-20","11:45","15","A ""small"" top-off",""',
+    '"2026-08-20","12:10","Diaper change","","","","","","","","Pee + poo"'
+  ].join("\r\n");
+
+  const restored = app.parseCareLogCsv(csv);
+
+  assert.equal(restored.feedingHistory.length, 1);
+  assert.equal(restored.diaperHistory.length, 1);
+  const feedingAt = restored.feedingHistory[0];
+  assert.deepEqual({ ...restored.feedingDetails[feedingAt] }, { kind: "top-off", milk: "formula", notes: 'A "small" top-off' });
+  assert.ok(restored.feedingSessions[0].endAt);
+  assert.equal(restored.diaperDetails[restored.diaperHistory[0]].type, "both");
+});
+
+test("restoring the same CSV deduplicates its event timestamps", () => {
+  const app = loadApp({});
+  const csv = [
+    '"Date","Time","Event","Feeding type","Milk type","Session status","End date","End time","Duration (minutes)","Notes","Diaper contents"',
+    '"2026-08-20","11:30","Feeding","Planned","Breast milk","Not tracked","","","","",""',
+    '"2026-08-20","11:30","Feeding","Planned","Breast milk","Not tracked","","","","",""'
+  ].join("\n");
+
+  assert.equal(app.parseCareLogCsv(csv).feedingHistory.length, 1);
+});
+
 test("export uses the phone share sheet when file sharing is supported", async () => {
   const feedingAt = "2026-08-20T18:00:00.000Z";
   let sharedPayload;
