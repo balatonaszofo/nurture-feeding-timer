@@ -555,7 +555,7 @@ function applyTheme() {
   document.documentElement.dataset.theme = darkMode ? "dark" : "light";
   darkModeToggle.setAttribute("aria-checked", darkMode);
   darkModeToggle.textContent = darkMode ? "On" : "Off";
-  $("meta[name='theme-color']").setAttribute("content", darkMode ? "#172223" : "#fffaf6");
+  $("meta[name='theme-color']").setAttribute("content", darkMode ? "#111a1b" : "#fffaf6");
 }
 
 async function prepareAudio() {
