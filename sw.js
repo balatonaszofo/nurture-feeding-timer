@@ -1,7 +1,8 @@
-const CACHE = "nurture-v18";
+const CACHE = "nurture-daily-v19";
 const ASSETS = [
-  "./", "./index.html", "./styles.css?v=18", "./push-config.js?v=18", "./firebase-config.js?v=18",
-  "./identity-core.js", "./auth.js?v=18", "./app.js?v=18", "./manifest.webmanifest?v=18", "./icon.svg"
+  "./", "./index.html", "./styles.css?v=19", "./push-config.js?v=19", "./firebase-config.js?v=19",
+  "./identity-core.js", "./auth.js?v=19", "./app.js?v=19", "./manifest.webmanifest?v=19", "./icon.svg?v=19",
+  "./icons/icon-180.png?v=19", "./icons/icon-192.png?v=19", "./icons/icon-512.png?v=19"
 ];
 
 self.addEventListener("install", event => {
@@ -61,8 +62,8 @@ self.addEventListener("push", event => {
   }
   event.waitUntil(self.registration.showNotification(message.title || "It's feeding time", {
     body: message.body || "The feeding timer has reached zero.",
-    icon: "./icon.svg",
-    badge: "./icon.svg",
+    icon: "./icons/icon-192.png?v=19",
+    badge: "./icons/icon-192.png?v=19",
     tag: message.tag || "nurture-feeding-alarm",
     renotify: true,
     data: { url: message.url || "./" }

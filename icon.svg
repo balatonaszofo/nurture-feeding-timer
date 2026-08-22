@@ -1,6 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="30" fill="#fae1d4"/>
-  <path d="M48 32h32v12l8 9v43c0 5-4 9-9 9H49c-5 0-9-4-9-9V53l8-9V32Z" fill="#263a3c"/>
-  <path d="M54 32h20v14H54zM48 65h32v23H48z" fill="#fffaf6"/>
-  <path d="M55 72h18M55 80h12" stroke="#e98768" stroke-width="5" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">Nurture Daily</title>
+  <desc id="description">Three coral rhythm bars on a soft peach circle.</desc>
+  <rect width="512" height="512" fill="#263a3c"/>
+  <circle cx="256" cy="256" r="170" fill="#fae1d4"/>
+  <circle cx="256" cy="256" r="143" fill="none" stroke="#fffaf6" stroke-opacity=".48" stroke-width="3"/>
+  <g fill="#e98768" transform="rotate(-12 256 256)">
+    <rect x="164" y="246" width="48" height="92" rx="24"/>
+    <rect x="232" y="166" width="48" height="172" rx="24"/>
+    <rect x="300" y="210" width="48" height="128" rx="24"/>
+  </g>
 </svg>

@@ -9,7 +9,7 @@ button { cursor:pointer; }
 .auth-open{min-height:100dvh}
 .auth-gate{min-height:100dvh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 78% 12%,rgba(250,225,212,.9),transparent 28%),linear-gradient(145deg,#fffaf6,#f8eee8)}
 .onboarding-panel{position:relative;width:min(100%,480px);padding:34px;border:1px solid rgba(234,222,215,.9);border-radius:30px;background:rgba(255,252,249,.88);box-shadow:0 24px 70px rgba(80,57,47,.12);backdrop-filter:blur(14px)}
-.onboarding-brand{display:flex;align-items:center;gap:8px;color:var(--ink);font-family:Fraunces,serif;font-size:25px;font-weight:700;letter-spacing:-1.2px}
+.onboarding-brand{display:flex;align-items:center;gap:8px;color:var(--ink);font-family:Fraunces,serif;font-size:25px;font-weight:700;letter-spacing:-1.2px}.brand-name{display:inline-flex;align-items:baseline;gap:6px}.brand-daily{color:#c1735c;font-family:"DM Sans",sans-serif;font-size:.46em;font-weight:700;letter-spacing:1.15px;text-transform:uppercase}
 .welcome-art{position:relative;width:126px;height:126px;margin:22px auto 27px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(145deg,#fbe0d2,#f6cbbb);box-shadow:0 15px 32px rgba(193,115,92,.18)}
 .welcome-orbit{position:absolute;border:1px solid rgba(255,255,255,.72);border-radius:50%}.orbit-one{inset:15px}.orbit-two{inset:30px}.welcome-heart{position:relative;color:#fff;font-family:Fraunces,serif;font-size:49px;line-height:1}
 .onboarding-panel>.eyebrow{margin-bottom:10px}.onboarding-panel h1{margin:0 0 14px;color:var(--ink);font-size:39px;line-height:1.03;letter-spacing:-1.8px}.onboarding-copy{margin:0;color:var(--muted);font-size:14px;line-height:1.55}

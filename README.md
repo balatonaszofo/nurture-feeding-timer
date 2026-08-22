@@ -1,4 +1,4 @@
-# Nurture Feeding Timer
+# Nurture Daily
 
 A small, calming feeding timer that remembers the last feeding and automatically calculates the next one from your chosen interval.
 
@@ -65,7 +65,7 @@ npx firebase-tools deploy --only firestore:rules --project YOUR_PROJECT_ID
 
 Firebase's web configuration object identifies the public app; access control comes from Firebase Authentication and `firestore.rules`, not from hiding the API key. The rules allow a user to read or update only `/users/{their-own-uid}` and deny every other document path.
 
-The alarm is designed for use while Nurture is active. Mobile operating systems may suspend browser timers when the app is in the background, even if it still appears open. Guaranteed background notifications require server-backed web push or a native mobile app.
+The alarm is designed for use while Nurture Daily is active. Mobile operating systems may suspend browser timers when the app is in the background, even if it still appears open. Guaranteed background notifications require server-backed web push or a native mobile app.
 
 ## Background notification server
 

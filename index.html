@@ -6,7 +6,9 @@
     <meta name="theme-color" content="#111a1b" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <meta name="apple-mobile-web-app-title" content="Nurture" />
+    <meta name="application-name" content="Nurture Daily" />
+    <meta name="description" content="A private daily feeding reminder and care log for your baby's rhythm." />
+    <meta name="apple-mobile-web-app-title" content="Nurture Daily" />
     <script data-theme-bootstrap>
       (() => {
         let savedDarkMode = false;
@@ -24,28 +26,28 @@
         document.querySelector('meta[name="theme-color"]').setAttribute("content", startupColor);
       })();
     </script>
-    <title>Nurture · Feeding Timer</title>
-    <link rel="manifest" href="manifest.webmanifest?v=18" />
-    <link rel="icon" href="icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icon.svg" />
+    <title>Nurture Daily · Feeding Timer</title>
+    <link rel="manifest" href="manifest.webmanifest?v=19" />
+    <link rel="icon" href="icon.svg?v=19" type="image/svg+xml" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png?v=19" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=18" />
+    <link rel="stylesheet" href="styles.css?v=19" />
   </head>
   <body>
     <div id="auth-gate" class="auth-gate">
       <section id="welcome-step" class="onboarding-panel welcome-panel" aria-labelledby="welcome-title">
-        <div class="onboarding-brand" aria-label="Nurture">
+        <div class="onboarding-brand" aria-label="Nurture Daily">
           <span class="brand-mark"><span></span><span></span><span></span></span>
-          nurture
+          <span class="brand-name"><span>nurture</span><span class="brand-daily">daily</span></span>
         </div>
         <div class="welcome-art" aria-hidden="true">
           <span class="welcome-orbit orbit-one"></span>
           <span class="welcome-orbit orbit-two"></span>
           <span class="welcome-heart">♡</span>
         </div>
-        <p class="eyebrow">WELCOME TO NURTURE</p>
+        <p class="eyebrow">WELCOME TO NURTURE DAILY</p>
         <h1 id="welcome-title">A calmer rhythm,<br />one moment at a time.</h1>
         <p class="onboarding-copy">Keep feeding and diaper notes close, private, and easy to reach—especially when your hands are full.</p>
         <ul class="welcome-benefits">
@@ -54,7 +56,7 @@
           <li><span>⌂</span><div><strong>Your log stays yours</strong><small>Choose a Google profile or a private guest space.</small></div></li>
         </ul>
         <button id="welcome-continue" class="onboarding-primary" type="button">Get started <span aria-hidden="true">→</span></button>
-        <p class="onboarding-footnote">Nurture supports your routine and does not replace medical guidance.</p>
+        <p class="onboarding-footnote">Nurture Daily supports your routine and does not replace medical guidance.</p>
       </section>
 
       <section id="signin-step" class="onboarding-panel signin-panel" aria-labelledby="signin-title" hidden>
@@ -62,7 +64,7 @@
         <div class="signin-mark" aria-hidden="true">♡</div>
         <p class="eyebrow">YOUR PRIVATE SPACE</p>
         <h1 id="signin-title">How would you like to continue?</h1>
-        <p class="onboarding-copy">Both choices keep your care log separate from everyone else using Nurture.</p>
+        <p class="onboarding-copy">Both choices keep your care log separate from everyone else using Nurture Daily.</p>
         <button id="google-login" class="google-login" type="button">
           <span class="google-mark" aria-hidden="true">G</span>
           Continue with Google
@@ -86,9 +88,9 @@
 
     <main class="app-shell" hidden>
       <header class="app-header">
-        <a class="brand" href="#" aria-label="Nurture home">
+        <a class="brand" href="#" aria-label="Nurture Daily home">
           <span class="brand-mark"><span></span><span></span><span></span></span>
-          nurture
+          <span class="brand-name"><span>nurture</span><span class="brand-daily">daily</span></span>
         </a>
         <button id="account-button" class="account-button" type="button" aria-label="Open account and privacy settings" hidden>
           <span id="account-avatar" class="account-avatar" aria-hidden="true">♡</span>
@@ -163,7 +165,7 @@
         <div class="alarm-copy">
           <p class="eyebrow">REMINDERS</p>
           <h2 id="alarm-title">Feeding alarm</h2>
-          <p id="alarm-status">Off · alerts work while Nurture is active</p>
+          <p id="alarm-status">Off · alerts work while Nurture Daily is active</p>
         </div>
         <div class="alarm-actions">
           <button id="test-alarm" class="test-alarm" type="button" disabled>Test</button>
@@ -323,13 +325,13 @@
         </div>
         <button id="account-google" class="google-login account-google" type="button"><span class="google-mark" aria-hidden="true">G</span>Connect Google account</button>
         <button id="account-exit" class="account-exit" type="button">Return to welcome</button>
-        <p class="account-privacy-copy">Care logs are partitioned by profile. Nurture never makes one person's records available to another account.</p>
+        <p class="account-privacy-copy">Care logs are partitioned by profile. Nurture Daily never makes one person's records available to another account.</p>
         <button id="done-account" class="dialog-save" type="button">Done</button>
       </div>
     </dialog>
 
-    <script src="push-config.js?v=18"></script>
-    <script src="firebase-config.js?v=18"></script>
-    <script type="module" src="auth.js?v=18"></script>
+    <script src="push-config.js?v=19"></script>
+    <script src="firebase-config.js?v=19"></script>
+    <script type="module" src="auth.js?v=19"></script>
   </body>
 </html>
