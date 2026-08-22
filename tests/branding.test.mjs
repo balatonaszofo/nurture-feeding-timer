@@ -35,3 +35,15 @@ test("the app icon uses the coral wordmark without a dark Android surround", () 
   assert.doesNotMatch(icon, /#263a3c/);
   assert.equal((icon.match(/<rect x=/g) || []).length, 3);
 });
+
+test("export is a bottom-page sheet and CSV restore lives under the profile", () => {
+  const page = readFileSync(rootFile("index.html"), "utf8");
+  const historyCardEnd = page.indexOf("</section>", page.indexOf('class="history-card"'));
+  const exportButton = page.indexOf('id="export-care-log"');
+  const accountDialog = page.indexOf('id="account-dialog"');
+  const importButton = page.indexOf('id="import-care-log"');
+
+  assert.ok(exportButton > historyCardEnd);
+  assert.ok(importButton > accountDialog);
+  assert.match(page, /id="export-dialog"[^]*id="export-google-sheets"[^]*id="download-care-log"/);
+});

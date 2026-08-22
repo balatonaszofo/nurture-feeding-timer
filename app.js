@@ -85,8 +85,12 @@ const diaperLogForm = $("#diaper-log-form");
 const darkModeToggle = $("#dark-mode-toggle");
 const exportCareLogButton = $("#export-care-log");
 const exportStatus = $("#export-status");
+const exportDialog = $("#export-dialog");
+const exportGoogleSheetsButton = $("#export-google-sheets");
+const downloadCareLogButton = $("#download-care-log");
 const importCareLogButton = $("#import-care-log");
 const importCareLogFile = $("#import-care-log-file");
+const importStatus = $("#import-status");
 
 function save() {
   const stateToSave = {
@@ -334,7 +338,7 @@ function updateExportAvailability() {
   if (isEmpty) {
     exportStatus.textContent = "Log a feeding or diaper change to enable export.";
   } else if (exportStatus.textContent.startsWith("Log a feeding")) {
-    exportStatus.textContent = "Share to Google Sheets or download a CSV file.";
+    exportStatus.textContent = "Export your complete care history.";
   }
 }
 
@@ -349,12 +353,22 @@ function downloadCareLog(file) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function createCareLogFile() {
+  const today = localDateValue(new Date());
+  return new File(["\ufeff", buildCareLogCsv()], `nurture-daily-care-log-${today}.csv`, { type: "text/csv;charset=utf-8" });
+}
+
+function openExportOptions() {
+  if (!feedingHistory.length && !diaperHistory.length) return;
+  exportStatus.textContent = "Choose Google Sheets or a CSV download.";
+  exportDialog.showModal();
+}
+
 async function exportCareLog() {
   if (!feedingHistory.length && !diaperHistory.length) return;
-  const today = localDateValue(new Date());
-  const file = new File(["\ufeff", buildCareLogCsv()], `nurture-care-log-${today}.csv`, { type: "text/csv;charset=utf-8" });
-  exportCareLogButton.disabled = true;
-  exportStatus.textContent = "Preparing your care log…";
+  const file = createCareLogFile();
+  exportGoogleSheetsButton.disabled = true;
+  exportStatus.textContent = "Opening your phone's share menu…";
 
   try {
     let canShareFile = false;
@@ -363,27 +377,35 @@ async function exportCareLog() {
     } catch {
       // Browsers that cannot inspect shared files still receive a regular download.
     }
-    if (canShareFile) {
-      try {
-        await navigator.share({
-          title: "Nurture Daily care log",
-          text: "Feeding and diaper history from Nurture Daily",
-          files: [file]
-        });
-        exportStatus.textContent = "Care log shared. Open the CSV in Google Sheets.";
-        return;
-      } catch (error) {
-        if (error?.name === "AbortError") {
-          exportStatus.textContent = "Export canceled. Your records are unchanged.";
-          return;
-        }
-      }
+    if (!canShareFile) {
+      exportStatus.textContent = "Google Sheets sharing isn't available here. Choose Download CSV instead.";
+      return;
     }
-    downloadCareLog(file);
-    exportStatus.textContent = "Care log downloaded. Open the CSV file in Google Sheets.";
+    try {
+      await navigator.share({
+        title: "Nurture Daily care log",
+        text: "Open this care log with Google Sheets.",
+        files: [file]
+      });
+      exportDialog.close();
+      exportStatus.textContent = "Care log shared. Choose Google Sheets from the share menu.";
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        exportStatus.textContent = "Export canceled. Your records are unchanged.";
+        return;
+      }
+      exportStatus.textContent = "The share menu couldn't open. Choose Download CSV instead.";
+    }
   } finally {
-    exportCareLogButton.disabled = false;
+    exportGoogleSheetsButton.disabled = false;
   }
+}
+
+function downloadCareLogCsv() {
+  if (!feedingHistory.length && !diaperHistory.length) return;
+  downloadCareLog(createCareLogFile());
+  exportDialog.close();
+  exportStatus.textContent = "CSV backup downloaded to this device.";
 }
 
 function parseCsvRows(text) {
@@ -515,20 +537,20 @@ function mergeImportedCareLog(imported) {
 async function importCareLog(file) {
   if (!file) return;
   importCareLogButton.disabled = true;
-  exportStatus.textContent = "Reading your backup…";
+  importStatus.textContent = "Reading your backup…";
   try {
     const imported = parseCareLogCsv(await file.text());
     const feedingCount = imported.feedingHistory.length;
     const diaperCount = imported.diaperHistory.length;
     const confirmed = window.confirm(`Restore ${feedingCount} ${feedingCount === 1 ? "feeding" : "feedings"} and ${diaperCount} ${diaperCount === 1 ? "diaper change" : "diaper changes"}? Existing records will be kept.`);
     if (!confirmed) {
-      exportStatus.textContent = "Restore canceled. Your records are unchanged.";
+      importStatus.textContent = "Restore canceled. Your records are unchanged.";
       return;
     }
     mergeImportedCareLog(imported);
-    exportStatus.textContent = `Backup restored: ${feedingCount} ${feedingCount === 1 ? "feeding" : "feedings"} and ${diaperCount} ${diaperCount === 1 ? "diaper change" : "diaper changes"}.`;
+    importStatus.textContent = `Backup restored: ${feedingCount} ${feedingCount === 1 ? "feeding" : "feedings"} and ${diaperCount} ${diaperCount === 1 ? "diaper change" : "diaper changes"}.`;
   } catch (error) {
-    exportStatus.textContent = error?.message || "Nurture Daily couldn't read that CSV backup.";
+    importStatus.textContent = error?.message || "Nurture Daily couldn't read that CSV backup.";
   } finally {
     importCareLogButton.disabled = false;
     importCareLogFile.value = "";
@@ -980,7 +1002,11 @@ $("#view-timetable").addEventListener("click", () => {
 });
 $("#close-history").addEventListener("click", () => historyDialog.close());
 $("#done-history").addEventListener("click", () => historyDialog.close());
-exportCareLogButton.addEventListener("click", () => void exportCareLog());
+exportCareLogButton.addEventListener("click", openExportOptions);
+exportGoogleSheetsButton.addEventListener("click", () => void exportCareLog());
+downloadCareLogButton.addEventListener("click", downloadCareLogCsv);
+$("#close-export").addEventListener("click", () => exportDialog.close());
+$("#cancel-export").addEventListener("click", () => exportDialog.close());
 importCareLogButton.addEventListener("click", () => importCareLogFile.click());
 importCareLogFile.addEventListener("change", event => void importCareLog(event.target.files?.[0]));
 document.querySelectorAll(".interval-option").forEach(button => button.addEventListener("click", () => {
