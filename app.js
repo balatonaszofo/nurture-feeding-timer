@@ -757,8 +757,8 @@ async function showNotification(title, body, tag) {
     const registration = await navigator.serviceWorker.ready;
     await registration.showNotification(title, {
       body,
-      icon: "./icons/icon-192.png?v=19",
-      badge: "./icons/icon-192.png?v=19",
+      icon: "./icons/icon-192.png?v=20",
+      badge: "./icons/icon-192.png?v=20",
       tag,
       renotify: true,
       data: { url: "./" }

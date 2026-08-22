@@ -28,8 +28,10 @@ test("launcher artwork supplies standard and maskable PNG icons", () => {
   }
 });
 
-test("the app icon uses the same three coral rhythm bars as the wordmark", () => {
+test("the app icon uses the coral wordmark without a dark Android surround", () => {
   const icon = readFileSync(rootFile("icon.svg"), "utf8");
+  assert.match(icon, /<rect width="512" height="512" fill="#fae1d4"/);
   assert.match(icon, /fill="#e98768"/);
+  assert.doesNotMatch(icon, /#263a3c/);
   assert.equal((icon.match(/<rect x=/g) || []).length, 3);
 });
