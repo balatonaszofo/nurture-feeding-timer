@@ -206,7 +206,7 @@ async function openApp(identity, sourceState = {}) {
   document.body.classList.remove("auth-open");
   if (!appLoaded) {
     appLoaded = true;
-    await import("./app.js?v=16");
+    await import("./app.js?v=17");
   }
 }
 

@@ -1,7 +1,7 @@
-const CACHE = "nurture-v16";
+const CACHE = "nurture-v17";
 const ASSETS = [
-  "./", "./index.html", "./styles.css?v=16", "./push-config.js?v=16", "./firebase-config.js?v=16",
-  "./identity-core.js", "./auth.js?v=16", "./app.js?v=16", "./manifest.webmanifest?v=16", "./icon.svg"
+  "./", "./index.html", "./styles.css?v=17", "./push-config.js?v=17", "./firebase-config.js?v=17",
+  "./identity-core.js", "./auth.js?v=17", "./app.js?v=17", "./manifest.webmanifest?v=17", "./icon.svg"
 ];
 
 self.addEventListener("install", event => {
