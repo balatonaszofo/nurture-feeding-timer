@@ -1,5 +1,8 @@
-const CACHE = "nurture-v15";
-const ASSETS = ["./", "./index.html", "./styles.css?v=15", "./push-config.js?v=15", "./app.js?v=15", "./manifest.webmanifest?v=15", "./icon.svg"];
+const CACHE = "nurture-v16";
+const ASSETS = [
+  "./", "./index.html", "./styles.css?v=16", "./push-config.js?v=16", "./firebase-config.js?v=16",
+  "./identity-core.js", "./auth.js?v=16", "./app.js?v=16", "./manifest.webmanifest?v=16", "./icon.svg"
+];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
@@ -20,6 +23,19 @@ self.addEventListener("fetch", event => {
       if (cached) return cached;
       if (event.request.mode === "navigate") return caches.match("./");
       return Response.error();
+    }));
+    return;
+  }
+  const firebaseModule = requestUrl.origin === "https://www.gstatic.com" && requestUrl.pathname.startsWith("/firebasejs/12.17.1/");
+  if (firebaseModule) {
+    event.respondWith(caches.match(event.request).then(async cached => {
+      if (cached) return cached;
+      const response = await fetch(event.request);
+      if (response.ok) {
+        const cache = await caches.open(CACHE);
+        await cache.put(event.request, response.clone());
+      }
+      return response;
     }));
     return;
   }

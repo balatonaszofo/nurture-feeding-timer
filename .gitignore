@@ -3,3 +3,5 @@ server/.env
 server/data/
 server/node_modules/
 server/tools/
+.firebase/
+firebase-debug.log

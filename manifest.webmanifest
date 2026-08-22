@@ -1,7 +1,7 @@
 {
   "name": "Nurture Feeding Timer",
   "short_name": "Nurture",
-  "description": "A gentle feeding reminder and diaper-change tracker for your baby's rhythm.",
+  "description": "A private feeding reminder and care log for your baby's rhythm.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#fffaf6",

@@ -6,7 +6,7 @@ import vm from "node:vm";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const bootstrap = html.match(/<script data-theme-bootstrap>([\s\S]*?)<\/script>/)?.[1];
 
-function runThemeBootstrap(savedState) {
+function runThemeBootstrap(savedState, activeProfile = null) {
   const themeMeta = {
     content: "#111a1b",
     setAttribute(name, value) {
@@ -20,7 +20,12 @@ function runThemeBootstrap(savedState) {
       querySelector() { return themeMeta; }
     },
     localStorage: {
-      getItem() { return JSON.stringify(savedState); }
+      getItem(key) {
+        if (key === "nurture-active-profile") return activeProfile;
+        if (activeProfile && key === `nurture-feeding-state:${activeProfile}`) return JSON.stringify(savedState);
+        if (!activeProfile && key === "nurture-feeding-state") return JSON.stringify(savedState);
+        return null;
+      }
     }
   };
   vm.runInNewContext(bootstrap, context);
@@ -39,4 +44,10 @@ test("saved light mode keeps the status bar light", () => {
   const { root, themeMeta } = runThemeBootstrap({ darkMode: false });
   assert.equal(root.dataset.theme, "light");
   assert.equal(themeMeta.content, "#fffaf6");
+});
+
+test("startup theme comes from the active private profile", () => {
+  const { root, themeMeta } = runThemeBootstrap({ darkMode: true }, "firebase-user-a");
+  assert.equal(root.dataset.theme, "dark");
+  assert.equal(themeMeta.content, "#111a1b");
 });

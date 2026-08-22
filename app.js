@@ -1,7 +1,13 @@
-const STORAGE_KEY = "nurture-feeding-state";
-const PUSH_DEVICE_KEY = "nurture-push-device-id";
+const STORAGE_KEY = window.NURTURE_STORAGE_KEY || "nurture-feeding-state";
+const PUSH_DEVICE_KEY = `nurture-push-device-id:${window.NURTURE_PROFILE_ID || "legacy"}`;
 const PUSH_SERVER = String(window.NURTURE_PUSH_SERVER || "").replace(/\/$/, "");
-const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
+const state = (() => {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
+  } catch {
+    return {};
+  }
+})();
 let intervalHours = Number(state.intervalHours) || 3;
 let darkMode = state.darkMode === true;
 document.documentElement.dataset.theme = darkMode ? "dark" : "light";
@@ -81,7 +87,7 @@ const exportCareLogButton = $("#export-care-log");
 const exportStatus = $("#export-status");
 
 function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+  const stateToSave = {
     intervalHours,
     lastFeeding: lastFeeding?.toISOString() || null,
     feedingHistory,
@@ -92,7 +98,9 @@ function save() {
     darkMode,
     alarmEnabled,
     lastAlarmedFor
-  }));
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+  window.NURTURE_CLOUD?.scheduleSave(stateToSave);
 }
 
 function getDurationParts(ms) {

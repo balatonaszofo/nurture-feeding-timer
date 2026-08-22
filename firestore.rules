@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      function ownsProfile() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function validProfileDocument() {
+        return request.resource.data.keys().hasOnly(['state', 'schemaVersion', 'updatedAt'])
+          && request.resource.data.state is map
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.updatedAt is timestamp;
+      }
+
+      allow read: if ownsProfile();
+      allow create, update: if ownsProfile() && validProfileDocument();
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

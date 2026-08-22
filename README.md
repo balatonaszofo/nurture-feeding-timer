@@ -16,6 +16,9 @@ A small, calming feeding timer that remembers the last feeding and automatically
 - Log diaper changes, see today's count, undo mistakes, and review change history
 - Classify diaper changes as pee, poo, or both
 - Export all feeding and diaper history as a Google Sheets-ready CSV file
+- Welcome new families with a two-step onboarding experience
+- Keep every browser or signed-in account in a separate private profile
+- Continue with Google for a recoverable cloud profile or without Google as a private guest
 - Switch between the light and dark appearance
 - Keep your settings on the device with local storage
 - Install from the browser as a home-screen app
@@ -38,9 +41,29 @@ Once GitHub Pages is enabled, open the published site on your phone.
 2. Open the browser menu.
 3. Choose **Install app** or **Add to Home screen**.
 
-All feeding and diaper-change data stays in that browser on that device. It is not uploaded to a server or shared between devices.
+Until Firebase is connected, all feeding and diaper-change data stays in that browser on that device. It is not uploaded to a server or shared between devices.
+
+When Firebase is connected, Google and anonymous guest profiles store an encrypted-in-transit backup in Cloud Firestore. Firestore rules restrict each profile document to the matching Firebase Authentication UID. A guest profile has no email or Google identity and is recoverable only from the browser where it was created. Existing pre-profile history is claimed by the first profile selected and is never offered to a second account on the same browser.
 
 Use **Export care log** to share the CSV file from a phone or download it from a browser. Choose Google Sheets or Google Drive from the phone's share menu when available, or import the downloaded CSV into Google Sheets.
+
+## Enable Google sign-in and private cloud profiles
+
+The onboarding and isolated on-device guest profiles work without external configuration. Google sign-in and cloud backup activate after this one-time Firebase setup:
+
+1. Create a Firebase project and register a **Web app** in Firebase Console.
+2. Copy the public Firebase web configuration values into `firebase-config.js`.
+3. In **Authentication → Sign-in method**, enable **Google** and **Anonymous**.
+4. Add `balatonaszofo.github.io` to **Authentication → Settings → Authorized domains**. Add the custom domain there later as well.
+5. Create a Cloud Firestore database in production mode.
+6. Deploy the included owner-only rules:
+
+```sh
+npx firebase-tools login
+npx firebase-tools deploy --only firestore:rules --project YOUR_PROJECT_ID
+```
+
+Firebase's web configuration object identifies the public app; access control comes from Firebase Authentication and `firestore.rules`, not from hiding the API key. The rules allow a user to read or update only `/users/{their-own-uid}` and deny every other document path.
 
 The alarm is designed for use while Nurture is active. Mobile operating systems may suspend browser timers when the app is in the background, even if it still appears open. Guaranteed background notifications require server-backed web push or a native mobile app.
 
