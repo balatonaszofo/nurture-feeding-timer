@@ -85,7 +85,11 @@ const feedingDetailsDialog = $("#feeding-details-dialog");
 const feedingDetailsForm = $("#feeding-details-form");
 const feedingAmount = $("#feeding-amount");
 const feedingAmountReadout = $("#feeding-amount-readout");
-const feedingAmountMax = $("#feeding-amount-max");
+const feedingAmountUnitLabel = $("#feeding-amount-unit-label");
+const feedingAmountStep = $("#feeding-amount-step");
+const feedingAmountDecrease = $("#feeding-amount-decrease");
+const feedingAmountIncrease = $("#feeding-amount-increase");
+const feedingAmountClear = $("#feeding-amount-clear");
 const feedingAmountUnitButtons = document.querySelectorAll("[data-amount-unit]");
 const diaperHistoryDialog = $("#diaper-history-dialog");
 const diaperTimetable = $("#diaper-timetable");
@@ -299,25 +303,61 @@ function milkKindLabel(value) {
 function feedingAmountLabel(details) {
   const amount = Number(details?.amount);
   if (!(amount > 0) || !["oz", "ml"].includes(details?.amountUnit)) return "";
-  const value = details.amountUnit === "oz" && !Number.isInteger(amount) ? amount.toFixed(1) : String(Math.round(amount));
+  const value = details.amountUnit === "oz" && !Number.isInteger(amount)
+    ? amount.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")
+    : String(Math.round(amount));
   return `${value} ${details.amountUnit === "ml" ? "mL" : "oz"}`;
 }
 
 function updateFeedingAmountReadout() {
   const amount = Number(feedingAmount.value);
   feedingAmountReadout.textContent = amount > 0 ? feedingAmountLabel({ amount, amountUnit: feedingAmountUnit }) : "Not recorded";
-  const progress = Number(feedingAmount.max) ? (amount / Number(feedingAmount.max)) * 100 : 0;
-  feedingAmount.style.setProperty("--amount-progress", `${progress}%`);
+  feedingAmountDecrease.disabled = !(amount > 0);
+  feedingAmountIncrease.disabled = amount >= Number(feedingAmount.max);
+  feedingAmountClear.disabled = !(amount > 0);
 }
 
 function configureFeedingAmount(unit, value = 0) {
   feedingAmountUnit = unit === "ml" ? "ml" : "oz";
   feedingAmount.max = feedingAmountUnit === "ml" ? "360" : "12";
-  feedingAmount.step = feedingAmountUnit === "ml" ? "5" : "0.5";
-  feedingAmount.value = String(Math.min(Number(feedingAmount.max), Math.max(0, Number(value) || 0)));
-  feedingAmountMax.textContent = feedingAmountUnit === "ml" ? "360 mL" : "12 oz";
+  feedingAmount.step = "any";
+  const amount = Math.min(Number(feedingAmount.max), Math.max(0, Number(value) || 0));
+  feedingAmount.value = amount > 0 ? String(amount) : "";
+  feedingAmountUnitLabel.textContent = feedingAmountUnit === "ml" ? "mL" : "oz";
+  feedingAmountStep.textContent = feedingAmountUnit === "ml" ? "Buttons adjust by 5 mL" : "Buttons adjust by 0.5 oz";
   feedingAmountUnitButtons.forEach(button => button.setAttribute("aria-checked", String(button.dataset.amountUnit === feedingAmountUnit)));
   updateFeedingAmountReadout();
+}
+
+function adjustFeedingAmount(direction) {
+  const step = feedingAmountUnit === "ml" ? 5 : 0.5;
+  const maximum = Number(feedingAmount.max);
+  const current = Number(feedingAmount.value) || 0;
+  const next = Math.min(maximum, Math.max(0, current + direction * step));
+  feedingAmount.value = String(Math.round(next * 100) / 100);
+  updateFeedingAmountReadout();
+}
+
+function normalizeFeedingAmountInput() {
+  const amount = Number(feedingAmount.value);
+  if (!(amount > 0)) {
+    feedingAmount.value = "";
+  } else {
+    feedingAmount.value = String(Math.min(Number(feedingAmount.max), amount));
+  }
+  updateFeedingAmountReadout();
+}
+
+function findRecentFeedingAmount(excludedStartAt) {
+  for (let index = feedingHistory.length - 1; index >= 0; index -= 1) {
+    const startAt = feedingHistory[index];
+    if (startAt === excludedStartAt) continue;
+    const details = feedingDetails[startAt];
+    if (Number(details?.amount) > 0 && ["oz", "ml"].includes(details?.amountUnit)) {
+      return { amount: Number(details.amount), amountUnit: details.amountUnit };
+    }
+  }
+  return null;
 }
 
 function changeFeedingAmountUnit(nextUnit) {
@@ -1027,9 +1067,13 @@ function openFeedingDetails(startAt) {
   selectedFeedingStart = date.toISOString();
   feedingDetailsForm.reset();
   const details = feedingDetails[selectedFeedingStart] || {};
+  const recentAmount = findRecentFeedingAmount(selectedFeedingStart);
   if (details.kind) feedingDetailsForm.elements["feeding-kind"].value = details.kind;
   if (details.milk) feedingDetailsForm.elements["milk-kind"].value = details.milk;
-  configureFeedingAmount(details.amountUnit || amountUnitPreference, details.amount || 0);
+  configureFeedingAmount(
+    details.amountUnit || recentAmount?.amountUnit || amountUnitPreference,
+    details.amount || recentAmount?.amount || 0,
+  );
   $("#feeding-notes").value = details.notes || "";
   $("#feeding-details-time").textContent = `Feeding logged ${formatDateTime(date)}`;
   feedingDetailsDialog.showModal();
@@ -1045,6 +1089,10 @@ feedingTimetable.addEventListener("click", event => {
   if (detailsButton) openFeedingDetails(detailsButton.dataset.feedingStart);
 });
 feedingAmount.addEventListener("input", updateFeedingAmountReadout);
+feedingAmount.addEventListener("change", normalizeFeedingAmountInput);
+feedingAmountDecrease.addEventListener("click", () => adjustFeedingAmount(-1));
+feedingAmountIncrease.addEventListener("click", () => adjustFeedingAmount(1));
+feedingAmountClear.addEventListener("click", () => configureFeedingAmount(feedingAmountUnit, 0));
 feedingAmountUnitButtons.forEach(button => button.addEventListener("click", () => changeFeedingAmountUnit(button.dataset.amountUnit)));
 feedingDetailsForm.addEventListener("submit", event => {
   if (event.submitter?.value === "cancel") return;
@@ -1053,8 +1101,9 @@ feedingDetailsForm.addEventListener("submit", event => {
   const formData = new FormData(feedingDetailsForm);
   const kind = formData.get("feeding-kind") || null;
   const milk = formData.get("milk-kind") || null;
+  normalizeFeedingAmountInput();
   const amountValue = Number(feedingAmount.value);
-  const amount = amountValue > 0 ? amountValue : null;
+  const amount = amountValue > 0 && amountValue <= Number(feedingAmount.max) ? amountValue : null;
   const amountUnit = amount ? feedingAmountUnit : null;
   amountUnitPreference = feedingAmountUnit;
   const notes = $("#feeding-notes").value.trim().slice(0, 500);

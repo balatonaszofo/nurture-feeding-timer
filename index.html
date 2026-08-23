@@ -28,13 +28,13 @@
       })();
     </script>
     <title>Nurture Daily · Feeding Timer</title>
-    <link rel="manifest" href="manifest.webmanifest?v=25" />
+    <link rel="manifest" href="manifest.webmanifest?v=26" />
     <link rel="icon" href="icon.svg?v=20" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png?v=20" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=25" />
+    <link rel="stylesheet" href="styles.css?v=26" />
   </head>
   <body>
     <div id="auth-gate" class="auth-gate">
@@ -291,8 +291,19 @@
               <button type="button" data-amount-unit="ml" role="radio" aria-checked="false">mL</button>
             </div>
           </div>
-          <input id="feeding-amount" class="amount-slider" type="range" min="0" max="12" step="0.5" value="0" aria-label="Feeding amount" />
-          <div class="amount-scale"><span>Not recorded</span><span id="feeding-amount-max">12 oz</span></div>
+          <div class="amount-stepper">
+            <button id="feeding-amount-decrease" class="amount-step-button" type="button" aria-label="Decrease feeding amount">−</button>
+            <label class="amount-entry" for="feeding-amount">
+              <span class="sr-only">Feeding amount</span>
+              <input id="feeding-amount" type="number" min="0" max="12" step="any" inputmode="decimal" autocomplete="off" aria-describedby="feeding-amount-guidance" />
+              <span id="feeding-amount-unit-label" aria-hidden="true">oz</span>
+            </label>
+            <button id="feeding-amount-increase" class="amount-step-button" type="button" aria-label="Increase feeding amount">+</button>
+          </div>
+          <div id="feeding-amount-guidance" class="amount-scale">
+            <span id="feeding-amount-step">Buttons adjust by 0.5 oz</span>
+            <button id="feeding-amount-clear" type="button">Clear amount</button>
+          </div>
         </fieldset>
 
         <label for="feeding-notes">Notes <span class="optional-label">optional</span></label>
@@ -372,9 +383,9 @@
       </div>
     </dialog>
 
-    <script src="push-config.js?v=25"></script>
-    <script src="firebase-config.js?v=25"></script>
-    <script type="module" src="native-bridge.js?v=25"></script>
-    <script type="module" src="auth.js?v=25"></script>
+    <script src="push-config.js?v=26"></script>
+    <script src="firebase-config.js?v=26"></script>
+    <script type="module" src="native-bridge.js?v=26"></script>
+    <script type="module" src="auth.js?v=26"></script>
   </body>
 </html>
