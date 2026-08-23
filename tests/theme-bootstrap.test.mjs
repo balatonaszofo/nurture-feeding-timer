@@ -9,7 +9,7 @@ const bootstrap = html.match(/<script data-theme-bootstrap>([\s\S]*?)<\/script>/
 
 function runThemeBootstrap(savedState, activeProfile = null) {
   const themeMeta = {
-    content: "#fffaf6",
+    content: "#111a1b",
     setAttribute(name, value) {
       if (name === "content") this.content = value;
     }
@@ -35,17 +35,27 @@ function runThemeBootstrap(savedState, activeProfile = null) {
 
 test("saved dark mode is applied before the app renders", () => {
   assert.ok(bootstrap, "theme bootstrap script is present in the document head");
-  assert.match(html, /apple-mobile-web-app-status-bar-style" content="default"/);
+  assert.match(html, /apple-mobile-web-app-status-bar-style" content="black"/);
   const { root, themeMeta } = runThemeBootstrap({ darkMode: true });
   assert.equal(root.dataset.theme, "dark");
   assert.equal(themeMeta.content, "#111a1b");
 });
 
 test("saved light mode keeps the status bar light", () => {
-  assert.match(html, /meta name="theme-color" content="#fffaf6"/);
+  assert.match(html, /meta name="theme-color" content="#111a1b"/);
   const { root, themeMeta } = runThemeBootstrap({ darkMode: false });
   assert.equal(root.dataset.theme, "light");
   assert.equal(themeMeta.content, "#fffaf6");
+});
+
+test("new profiles and the installed-app splash default to dark", () => {
+  const manifest = JSON.parse(readFileSync(new URL("../manifest.webmanifest", import.meta.url), "utf8"));
+  const { root, themeMeta } = runThemeBootstrap({});
+  assert.equal(root.dataset.theme, "dark");
+  assert.equal(themeMeta.content, "#111a1b");
+  assert.equal(manifest.background_color, "#111a1b");
+  assert.equal(manifest.theme_color, "#111a1b");
+  assert.match(app, /let darkMode = state\.darkMode !== false/);
 });
 
 test("startup theme comes from the active private profile", () => {

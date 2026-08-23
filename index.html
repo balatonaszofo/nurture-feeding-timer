@@ -1,25 +1,32 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#fffaf6" />
+    <meta name="theme-color" content="#111a1b" />
     <meta name="color-scheme" content="light dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="application-name" content="Nurture Daily" />
     <meta name="description" content="A private daily feeding reminder and care log for your baby's rhythm." />
     <meta name="apple-mobile-web-app-title" content="Nurture Daily" />
+    <style data-launch-theme>
+      html, body { background:#111a1b; }
+      html[data-theme="light"], html[data-theme="light"] body { background:#fffaf6; }
+      html[data-theme="dark"] .onboarding-primary { background:#456d67; color:#fff; }
+      .amount-control-head.amount-control-head-single { justify-content:flex-end; }
+    </style>
     <script data-theme-bootstrap>
       (() => {
-        let savedDarkMode = false;
+        let savedDarkMode = true;
         try {
           const activeProfile = localStorage.getItem("nurture-active-profile");
           const activeKey = activeProfile ? `nurture-feeding-state:${activeProfile}` : "nurture-feeding-state";
           const savedValue = localStorage.getItem(activeKey) || (!activeProfile ? localStorage.getItem("nurture-feeding-state") : null);
-          savedDarkMode = JSON.parse(savedValue || "{}")?.darkMode === true;
+          const savedState = JSON.parse(savedValue || "{}");
+          if (typeof savedState?.darkMode === "boolean") savedDarkMode = savedState.darkMode;
         } catch {
-          // Use the light theme if saved browser data cannot be read.
+          // Use the night-friendly dark theme if saved browser data cannot be read.
         }
         const startupTheme = savedDarkMode ? "dark" : "light";
         const startupColor = savedDarkMode ? "#111a1b" : "#fffaf6";
@@ -28,13 +35,13 @@
       })();
     </script>
     <title>Nurture Daily · Feeding Timer</title>
-    <link rel="manifest" href="manifest.webmanifest?v=26" />
+    <link rel="manifest" href="manifest.webmanifest?v=27" />
     <link rel="icon" href="icon.svg?v=20" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png?v=20" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=26" />
+    <link rel="stylesheet" href="styles.css?v=27" />
   </head>
   <body>
     <div id="auth-gate" class="auth-gate">
@@ -284,8 +291,8 @@
 
         <fieldset class="amount-fieldset">
           <legend>Amount <span class="optional-label">optional</span></legend>
-          <div class="amount-control-head">
-            <output id="feeding-amount-readout" for="feeding-amount">Not recorded</output>
+          <div class="amount-control-head amount-control-head-single">
+            <output id="feeding-amount-readout" class="sr-only" for="feeding-amount" aria-live="polite">Not recorded</output>
             <div class="amount-unit-switch" role="radiogroup" aria-label="Feeding amount unit">
               <button type="button" data-amount-unit="oz" role="radio" aria-checked="true">oz</button>
               <button type="button" data-amount-unit="ml" role="radio" aria-checked="false">mL</button>
@@ -383,9 +390,9 @@
       </div>
     </dialog>
 
-    <script src="push-config.js?v=26"></script>
-    <script src="firebase-config.js?v=26"></script>
-    <script type="module" src="native-bridge.js?v=26"></script>
-    <script type="module" src="auth.js?v=26"></script>
+    <script src="push-config.js?v=27"></script>
+    <script src="firebase-config.js?v=27"></script>
+    <script type="module" src="native-bridge.js?v=27"></script>
+    <script type="module" src="auth.js?v=27"></script>
   </body>
 </html>

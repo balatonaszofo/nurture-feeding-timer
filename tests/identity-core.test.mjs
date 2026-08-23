@@ -67,6 +67,12 @@ test("cloud and device care logs merge without losing either person's own events
   assert.equal(merged.diaperDetails[diaper].type, "pee");
 });
 
+test("new profiles default to dark without overriding an explicit light choice", () => {
+  assert.equal(mergeCareStates({}, {}).darkMode, true);
+  assert.equal(mergeCareStates({ darkMode: false }, {}).darkMode, false);
+  assert.equal(mergeCareStates({ darkMode: true }, { darkMode: false }).darkMode, false);
+});
+
 test("Firebase connection requires the complete public web config", () => {
   assert.equal(isFirebaseConfigured({}), false);
   assert.equal(isFirebaseConfigured({ apiKey: "YOUR_KEY", authDomain: "x", projectId: "x", appId: "x" }), false);

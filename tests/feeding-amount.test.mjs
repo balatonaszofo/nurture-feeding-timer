@@ -11,6 +11,7 @@ test("feeding amount uses an exact numeric stepper instead of a range slider", (
   assert.match(page, /id="feeding-amount-decrease"/);
   assert.match(page, /id="feeding-amount-increase"/);
   assert.match(page, /id="feeding-amount-clear"/);
+  assert.match(page, /id="feeding-amount-readout" class="sr-only"/);
   assert.match(app, /function adjustFeedingAmount\(direction\)/);
 });
 

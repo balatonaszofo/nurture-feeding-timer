@@ -96,7 +96,9 @@ export function mergeCareStates(primary = {}, secondary = {}) {
     feedingDetails: { ...(first.feedingDetails || {}), ...(second.feedingDetails || {}) },
     diaperHistory,
     diaperDetails: { ...(first.diaperDetails || {}), ...(second.diaperDetails || {}) },
-    darkMode: typeof second.darkMode === "boolean" ? second.darkMode : first.darkMode === true,
+    darkMode: typeof second.darkMode === "boolean"
+      ? second.darkMode
+      : typeof first.darkMode === "boolean" ? first.darkMode : true,
     alarmEnabled: typeof second.alarmEnabled === "boolean" ? second.alarmEnabled : first.alarmEnabled === true,
     lastAlarmedFor: second.lastAlarmedFor || first.lastAlarmedFor || null
   };

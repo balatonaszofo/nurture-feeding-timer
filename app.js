@@ -9,7 +9,7 @@ const state = (() => {
   }
 })();
 let intervalHours = Number(state.intervalHours) || 3;
-let darkMode = state.darkMode === true;
+let darkMode = state.darkMode !== false;
 let amountUnitPreference = state.amountUnitPreference === "ml" ? "ml" : "oz";
 let feedingAmountUnit = amountUnitPreference;
 document.documentElement.dataset.theme = darkMode ? "dark" : "light";
@@ -857,7 +857,7 @@ function refreshThemeChrome() {
   const themeColor = darkMode ? "#111a1b" : "#fffaf6";
   const themeMeta = $("meta[name='theme-color']");
   themeMeta.setAttribute("content", themeColor);
-  $("meta[name='apple-mobile-web-app-status-bar-style']").setAttribute("content", darkMode ? "black-translucent" : "default");
+  $("meta[name='apple-mobile-web-app-status-bar-style']").setAttribute("content", darkMode ? "black" : "default");
   document.documentElement.style?.setProperty("color-scheme", darkMode ? "dark" : "light");
   void window.NURTURE_NATIVE?.setTheme(darkMode);
 
