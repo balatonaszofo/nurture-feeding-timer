@@ -10,6 +10,8 @@ const state = (() => {
 })();
 let intervalHours = Number(state.intervalHours) || 3;
 let darkMode = state.darkMode === true;
+let amountUnitPreference = state.amountUnitPreference === "ml" ? "ml" : "oz";
+let feedingAmountUnit = amountUnitPreference;
 document.documentElement.dataset.theme = darkMode ? "dark" : "light";
 const storedFeedings = Array.isArray(state.feedingHistory) ? state.feedingHistory : [];
 let feedingHistory = [...new Set([...storedFeedings, state.lastFeeding].filter(value => {
@@ -30,8 +32,12 @@ Object.entries(storedFeedingDetails).forEach(([startAt, details]) => {
   if (Number.isNaN(new Date(startAt).getTime()) || !details || typeof details !== "object") return;
   const kind = ["planned", "top-off"].includes(details.kind) ? details.kind : null;
   const milk = ["breast-milk", "formula"].includes(details.milk) ? details.milk : null;
+  const amountUnit = ["oz", "ml"].includes(details.amountUnit) ? details.amountUnit : null;
+  const amountValue = Number(details.amount);
+  const amountMaximum = amountUnit === "oz" ? 12 : 360;
+  const amount = amountUnit && amountValue > 0 && amountValue <= amountMaximum ? amountValue : null;
   const notes = typeof details.notes === "string" ? details.notes.trim().slice(0, 500) : "";
-  if (kind || milk || notes) feedingDetails[startAt] = { kind, milk, notes };
+  if (kind || milk || amount || notes) feedingDetails[startAt] = { kind, milk, amount, amountUnit: amount ? amountUnit : null, notes };
 });
 const storedDiapers = Array.isArray(state.diaperHistory) ? state.diaperHistory : [];
 let diaperHistory = [...new Set(storedDiapers.filter(value => {
@@ -77,6 +83,10 @@ const historyDialog = $("#history-dialog");
 const feedingTimetable = $("#feeding-timetable");
 const feedingDetailsDialog = $("#feeding-details-dialog");
 const feedingDetailsForm = $("#feeding-details-form");
+const feedingAmount = $("#feeding-amount");
+const feedingAmountReadout = $("#feeding-amount-readout");
+const feedingAmountMax = $("#feeding-amount-max");
+const feedingAmountUnitButtons = document.querySelectorAll("[data-amount-unit]");
 const diaperHistoryDialog = $("#diaper-history-dialog");
 const diaperTimetable = $("#diaper-timetable");
 const undoDiaper = $("#undo-diaper");
@@ -102,6 +112,7 @@ function save() {
     diaperHistory,
     diaperDetails,
     darkMode,
+    amountUnitPreference,
     alarmEnabled,
     lastAlarmedFor
   };
@@ -250,7 +261,7 @@ function getScheduleAnchorFeeding() {
 
 function hasFeedingDetails(startAt) {
   const details = feedingDetails[startAt];
-  return Boolean(details && (details.kind || details.milk || details.notes));
+  return Boolean(details && (details.kind || details.milk || details.amount || details.notes));
 }
 
 function feedingKindLabel(value) {
@@ -259,6 +270,43 @@ function feedingKindLabel(value) {
 
 function milkKindLabel(value) {
   return value === "breast-milk" ? "Breast milk" : value === "formula" ? "Formula" : "";
+}
+
+function feedingAmountLabel(details) {
+  const amount = Number(details?.amount);
+  if (!(amount > 0) || !["oz", "ml"].includes(details?.amountUnit)) return "";
+  const value = details.amountUnit === "oz" && !Number.isInteger(amount) ? amount.toFixed(1) : String(Math.round(amount));
+  return `${value} ${details.amountUnit === "ml" ? "mL" : "oz"}`;
+}
+
+function updateFeedingAmountReadout() {
+  const amount = Number(feedingAmount.value);
+  feedingAmountReadout.textContent = amount > 0 ? feedingAmountLabel({ amount, amountUnit: feedingAmountUnit }) : "Not recorded";
+  const progress = Number(feedingAmount.max) ? (amount / Number(feedingAmount.max)) * 100 : 0;
+  feedingAmount.style.setProperty("--amount-progress", `${progress}%`);
+}
+
+function configureFeedingAmount(unit, value = 0) {
+  feedingAmountUnit = unit === "ml" ? "ml" : "oz";
+  feedingAmount.max = feedingAmountUnit === "ml" ? "360" : "12";
+  feedingAmount.step = feedingAmountUnit === "ml" ? "5" : "0.5";
+  feedingAmount.value = String(Math.min(Number(feedingAmount.max), Math.max(0, Number(value) || 0)));
+  feedingAmountMax.textContent = feedingAmountUnit === "ml" ? "360 mL" : "12 oz";
+  feedingAmountUnitButtons.forEach(button => button.setAttribute("aria-checked", String(button.dataset.amountUnit === feedingAmountUnit)));
+  updateFeedingAmountReadout();
+}
+
+function changeFeedingAmountUnit(nextUnit) {
+  if (nextUnit === feedingAmountUnit) return;
+  const currentAmount = Number(feedingAmount.value);
+  if (!(currentAmount > 0)) {
+    configureFeedingAmount(nextUnit, 0);
+    return;
+  }
+  const converted = nextUnit === "ml"
+    ? Math.round((currentAmount * 29.5735) / 5) * 5
+    : Math.round((currentAmount / 29.5735) * 2) / 2;
+  configureFeedingAmount(nextUnit, converted);
 }
 
 function diaperTypeLabel(value) {
@@ -304,7 +352,8 @@ function buildCareLogCsv() {
       timestamp: started.getTime(),
       cells: [
         localDateValue(started), localTimeValue(started), "Feeding",
-        feedingKindLabel(metadata.kind), milkKindLabel(metadata.milk), sessionStatus,
+        feedingKindLabel(metadata.kind), milkKindLabel(metadata.milk), metadata.amount || "",
+        metadata.amount ? (metadata.amountUnit === "ml" ? "mL" : "oz") : "", sessionStatus,
         ended && !Number.isNaN(ended.getTime()) ? localDateValue(ended) : "",
         ended && !Number.isNaN(ended.getTime()) ? localTimeValue(ended) : "",
         durationMinutes, metadata.notes || "", ""
@@ -319,14 +368,14 @@ function buildCareLogCsv() {
       timestamp: changed.getTime(),
       cells: [
         localDateValue(changed), localTimeValue(changed), "Diaper change",
-        "", "", "", "", "", "", "", diaperTypeLabel(diaperDetails[changedAt]?.type)
+        "", "", "", "", "", "", "", "", "", diaperTypeLabel(diaperDetails[changedAt]?.type)
       ]
     });
   });
 
   events.sort((a, b) => a.timestamp - b.timestamp);
   const headings = [
-    "Date", "Time", "Event", "Feeding type", "Milk type", "Session status",
+    "Date", "Time", "Event", "Feeding type", "Milk type", "Amount", "Amount unit", "Session status",
     "End date", "End time", "Duration (minutes)", "Notes", "Diaper contents"
   ];
   return [headings, ...events.map(event => event.cells)].map(row => row.map(csvCell).join(",")).join("\r\n");
@@ -480,14 +529,21 @@ function parseCareLogCsv(text) {
       imported.feedingHistory.push(startedAt);
       const typeValue = valueAt(row, "Feeding type").toLowerCase();
       const milkValue = valueAt(row, "Milk type").toLowerCase();
+      const amountValue = Number(valueAt(row, "Amount"));
+      const amountUnitValue = valueAt(row, "Amount unit").toLowerCase();
+      const amountUnit = ["ml", "milliliter", "milliliters"].includes(amountUnitValue) ? "ml" : ["oz", "ounce", "ounces"].includes(amountUnitValue) ? "oz" : null;
+      const amountMaximum = amountUnit === "oz" ? 12 : 360;
+      const amount = amountUnit && amountValue > 0 && amountValue <= amountMaximum ? amountValue : null;
       let notes = valueAt(row, "Notes");
       if (/^'[=+\-@]/.test(notes)) notes = notes.slice(1);
       const details = {
         kind: typeValue === "planned" ? "planned" : ["top-off", "top off"].includes(typeValue) ? "top-off" : null,
         milk: milkValue === "formula" ? "formula" : milkValue === "breast milk" ? "breast-milk" : null,
+        amount,
+        amountUnit: amount ? amountUnit : null,
         notes: notes.slice(0, 500)
       };
-      if (details.kind || details.milk || details.notes) imported.feedingDetails[startedAt] = details;
+      if (details.kind || details.milk || details.amount || details.notes) imported.feedingDetails[startedAt] = details;
 
       const sessionStatus = valueAt(row, "Session status").toLowerCase();
       if (sessionStatus === "completed") {
@@ -618,10 +674,11 @@ function renderHistory() {
       details.append(duration, gap);
       const feedingStart = date.toISOString();
       const metadata = feedingDetails[feedingStart];
-      if (metadata?.kind || metadata?.milk) {
+      const amountLabel = feedingAmountLabel(metadata);
+      if (metadata?.kind || metadata?.milk || amountLabel) {
         const tags = document.createElement("span");
         tags.className = "feeding-tags";
-        [feedingKindLabel(metadata.kind), milkKindLabel(metadata.milk)].filter(Boolean).forEach(label => {
+        [feedingKindLabel(metadata.kind), milkKindLabel(metadata.milk), amountLabel].filter(Boolean).forEach(label => {
           const tag = document.createElement("span");
           tag.textContent = label;
           tags.append(tag);
@@ -932,6 +989,7 @@ function openFeedingDetails(startAt) {
   const details = feedingDetails[selectedFeedingStart] || {};
   if (details.kind) feedingDetailsForm.elements["feeding-kind"].value = details.kind;
   if (details.milk) feedingDetailsForm.elements["milk-kind"].value = details.milk;
+  configureFeedingAmount(details.amountUnit || amountUnitPreference, details.amount || 0);
   $("#feeding-notes").value = details.notes || "";
   $("#feeding-details-time").textContent = `Feeding logged ${formatDateTime(date)}`;
   feedingDetailsDialog.showModal();
@@ -946,6 +1004,8 @@ feedingTimetable.addEventListener("click", event => {
   const detailsButton = event.target.closest("[data-feeding-start]");
   if (detailsButton) openFeedingDetails(detailsButton.dataset.feedingStart);
 });
+feedingAmount.addEventListener("input", updateFeedingAmountReadout);
+feedingAmountUnitButtons.forEach(button => button.addEventListener("click", () => changeFeedingAmountUnit(button.dataset.amountUnit)));
 feedingDetailsForm.addEventListener("submit", event => {
   if (event.submitter?.value === "cancel") return;
   event.preventDefault();
@@ -953,9 +1013,13 @@ feedingDetailsForm.addEventListener("submit", event => {
   const formData = new FormData(feedingDetailsForm);
   const kind = formData.get("feeding-kind") || null;
   const milk = formData.get("milk-kind") || null;
+  const amountValue = Number(feedingAmount.value);
+  const amount = amountValue > 0 ? amountValue : null;
+  const amountUnit = amount ? feedingAmountUnit : null;
+  amountUnitPreference = feedingAmountUnit;
   const notes = $("#feeding-notes").value.trim().slice(0, 500);
-  if (kind || milk || notes) {
-    feedingDetails[selectedFeedingStart] = { kind, milk, notes };
+  if (kind || milk || amount || notes) {
+    feedingDetails[selectedFeedingStart] = { kind, milk, amount, amountUnit, notes };
   } else {
     delete feedingDetails[selectedFeedingStart];
   }

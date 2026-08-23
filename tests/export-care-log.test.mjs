@@ -70,7 +70,7 @@ test("care log CSV combines chronological feeding and diaper details", () => {
     feedingHistory: [feedingAt],
     feedingSessions: [{ startAt: feedingAt, endAt: feedingEnd }],
     feedingDetails: {
-      [feedingAt]: { kind: "top-off", milk: "formula", notes: "=SUM(1,2)" }
+      [feedingAt]: { kind: "top-off", milk: "formula", amount: 2.5, amountUnit: "oz", notes: "=SUM(1,2)" }
     },
     diaperHistory: [diaperAt],
     diaperDetails: { [diaperAt]: { type: "both" } }
@@ -79,7 +79,7 @@ test("care log CSV combines chronological feeding and diaper details", () => {
   const csv = app.buildCareLogCsv();
   assert.match(csv, /^"Date","Time","Event"/);
   assert.ok(csv.indexOf('"Diaper change"') < csv.indexOf('"Feeding"'));
-  assert.match(csv, /"Top-off","Formula","Completed"/);
+  assert.match(csv, /"Top-off","Formula","2\.5","oz","Completed"/);
   assert.match(csv, /"42\.5","'=SUM\(1,2\)"/);
   assert.match(csv, /"Pee \+ poo"/);
 });
@@ -89,15 +89,15 @@ test("care log CSV preserves an untracked feeding", () => {
   const app = loadApp({ feedingHistory: [feedingAt] });
   const csv = app.buildCareLogCsv();
 
-  assert.match(csv, /"Feeding","","","Not tracked","","","","",""/);
+  assert.match(csv, /"Feeding","","","","","Not tracked","","","","",""/);
 });
 
 test("a Nurture CSV backup restores feeding details, sessions, and diapers", () => {
   const app = loadApp({});
   const csv = [
-    '"Date","Time","Event","Feeding type","Milk type","Session status","End date","End time","Duration (minutes)","Notes","Diaper contents"',
-    '"2026-08-20","11:30","Feeding","Top-off","Formula","Completed","2026-08-20","11:45","15","A ""small"" top-off",""',
-    '"2026-08-20","12:10","Diaper change","","","","","","","","Pee + poo"'
+    '"Date","Time","Event","Feeding type","Milk type","Amount","Amount unit","Session status","End date","End time","Duration (minutes)","Notes","Diaper contents"',
+    '"2026-08-20","11:30","Feeding","Top-off","Formula","90","mL","Completed","2026-08-20","11:45","15","A ""small"" top-off",""',
+    '"2026-08-20","12:10","Diaper change","","","","","","","","","","Pee + poo"'
   ].join("\r\n");
 
   const restored = app.parseCareLogCsv(csv);
@@ -105,7 +105,7 @@ test("a Nurture CSV backup restores feeding details, sessions, and diapers", () 
   assert.equal(restored.feedingHistory.length, 1);
   assert.equal(restored.diaperHistory.length, 1);
   const feedingAt = restored.feedingHistory[0];
-  assert.deepEqual({ ...restored.feedingDetails[feedingAt] }, { kind: "top-off", milk: "formula", notes: 'A "small" top-off' });
+  assert.deepEqual({ ...restored.feedingDetails[feedingAt] }, { kind: "top-off", milk: "formula", amount: 90, amountUnit: "ml", notes: 'A "small" top-off' });
   assert.ok(restored.feedingSessions[0].endAt);
   assert.equal(restored.diaperDetails[restored.diaperHistory[0]].type, "both");
 });

@@ -10,7 +10,7 @@ import {
   migrateLegacyState,
   profileStorageKey,
   safeParseState
-} from "./identity-core.js?v=22";
+} from "./identity-core.js?v=23";
 
 const FIREBASE_VERSION = "12.17.1";
 const AUTH_CHOICE_KEY = "nurture-auth-choice";
@@ -217,7 +217,7 @@ async function openApp(identity, sourceState = {}) {
   document.body.classList.remove("auth-open");
   if (!appLoaded) {
     appLoaded = true;
-    await import("./app.js?v=22");
+    await import("./app.js?v=23");
   }
 }
 

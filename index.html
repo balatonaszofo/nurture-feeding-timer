@@ -33,7 +33,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=22" />
+    <link rel="stylesheet" href="styles.css?v=23" />
   </head>
   <body>
     <div id="auth-gate" class="auth-gate">
@@ -281,8 +281,21 @@
           </div>
         </fieldset>
 
+        <fieldset class="amount-fieldset">
+          <legend>Amount <span class="optional-label">optional</span></legend>
+          <div class="amount-control-head">
+            <output id="feeding-amount-readout" for="feeding-amount">Not recorded</output>
+            <div class="amount-unit-switch" role="radiogroup" aria-label="Feeding amount unit">
+              <button type="button" data-amount-unit="oz" role="radio" aria-checked="true">oz</button>
+              <button type="button" data-amount-unit="ml" role="radio" aria-checked="false">mL</button>
+            </div>
+          </div>
+          <input id="feeding-amount" class="amount-slider" type="range" min="0" max="12" step="0.5" value="0" aria-label="Feeding amount" />
+          <div class="amount-scale"><span>Not recorded</span><span id="feeding-amount-max">12 oz</span></div>
+        </fieldset>
+
         <label for="feeding-notes">Notes <span class="optional-label">optional</span></label>
-        <textarea id="feeding-notes" maxlength="500" rows="3" placeholder="Amount, how baby fed, or anything you want to remember"></textarea>
+        <textarea id="feeding-notes" maxlength="500" rows="3" placeholder="How baby fed, or anything you want to remember"></textarea>
         <button class="dialog-save" value="default">Save details</button>
       </form>
     </dialog>
@@ -358,8 +371,8 @@
       </div>
     </dialog>
 
-    <script src="push-config.js?v=22"></script>
-    <script src="firebase-config.js?v=22"></script>
-    <script type="module" src="auth.js?v=22"></script>
+    <script src="push-config.js?v=23"></script>
+    <script src="firebase-config.js?v=23"></script>
+    <script type="module" src="auth.js?v=23"></script>
   </body>
 </html>
