@@ -1,4 +1,4 @@
-:root { --ink:#263a3c; --muted:#718183; --peach:#fae1d4; --peach-deep:#f4cdbb; --cream:#fffaf6; --mint:#dcece5; --line:#eaded7; --coral:#e98768; }
+:root { color-scheme:light; --ink:#263a3c; --muted:#718183; --peach:#fae1d4; --peach-deep:#f4cdbb; --cream:#fffaf6; --mint:#dcece5; --line:#eaded7; --coral:#e98768; }
 * { box-sizing:border-box; }
 html { min-height:100%; background:#fffaf6; }
 body { margin:0; min-width:320px; min-height:100vh; color:var(--ink); background:linear-gradient(135deg,#fffaf5 0%,#fff8f2 58%,#f6eee9 100%); font-family:"DM Sans",sans-serif; }

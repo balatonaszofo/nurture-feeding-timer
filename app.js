@@ -789,11 +789,26 @@ function updateAlarmUI(message = "") {
   }
 }
 
+function refreshThemeChrome() {
+  const themeColor = darkMode ? "#111a1b" : "#fffaf6";
+  const themeMeta = $("meta[name='theme-color']");
+  themeMeta.setAttribute("content", themeColor);
+  $("meta[name='apple-mobile-web-app-status-bar-style']").setAttribute("content", darkMode ? "black-translucent" : "default");
+  document.documentElement.style?.setProperty("color-scheme", darkMode ? "dark" : "light");
+
+  // Some installed Android PWAs only repaint the native status bar when the
+  // theme-color element itself changes in the document, not just its value.
+  if (document.head && typeof themeMeta.remove === "function") {
+    themeMeta.remove();
+    document.head.append(themeMeta);
+  }
+}
+
 function applyTheme() {
   document.documentElement.dataset.theme = darkMode ? "dark" : "light";
   darkModeToggle.setAttribute("aria-checked", darkMode);
   darkModeToggle.textContent = darkMode ? "On" : "Off";
-  $("meta[name='theme-color']").setAttribute("content", darkMode ? "#111a1b" : "#fffaf6");
+  refreshThemeChrome();
 }
 
 async function prepareAudio() {
@@ -1095,6 +1110,11 @@ darkModeToggle.addEventListener("click", () => {
   darkMode = !darkMode;
   applyTheme();
   save();
+  if (window.matchMedia?.("(display-mode: standalone)").matches) {
+    // Reload once with the saved theme available to the head bootstrap. This
+    // refreshes system bars on Android versions that ignore runtime updates.
+    setTimeout(() => window.location.reload(), 80);
+  }
 });
 
 alarmToggle.addEventListener("click", async () => {

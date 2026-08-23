@@ -4,6 +4,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const app = readFileSync(new URL("../app.js", import.meta.url), "utf8");
 const bootstrap = html.match(/<script data-theme-bootstrap>([\s\S]*?)<\/script>/)?.[1];
 
 function runThemeBootstrap(savedState, activeProfile = null) {
@@ -51,4 +52,11 @@ test("startup theme comes from the active private profile", () => {
   const { root, themeMeta } = runThemeBootstrap({ darkMode: true }, "firebase-user-a");
   assert.equal(root.dataset.theme, "dark");
   assert.equal(themeMeta.content, "#111a1b");
+});
+
+test("theme changes refresh installed-app system bars", () => {
+  assert.match(html, /meta name="color-scheme" content="light dark"/);
+  assert.match(app, /themeMeta\.remove\(\)/);
+  assert.match(app, /display-mode: standalone/);
+  assert.match(app, /window\.location\.reload\(\)/);
 });
