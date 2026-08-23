@@ -2,6 +2,7 @@
 * { box-sizing:border-box; }
 html { min-height:100%; background:#fffaf6; }
 body { margin:0; min-width:320px; min-height:100vh; color:var(--ink); background:linear-gradient(135deg,#fffaf5 0%,#fff8f2 58%,#f6eee9 100%); font-family:"DM Sans",sans-serif; }
+:root.native-app{--native-safe-top:var(--safe-area-inset-top,env(safe-area-inset-top,0px));--native-safe-bottom:var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px))}:root.native-app body{min-height:100dvh;padding-top:var(--native-safe-top);padding-bottom:var(--native-safe-bottom)}:root.native-app .auth-gate{min-height:calc(100dvh - var(--native-safe-top) - var(--native-safe-bottom))}
 button,input { font:inherit; }
 button { cursor:pointer; }
 [hidden]{display:none!important}

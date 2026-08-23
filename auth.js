@@ -10,7 +10,7 @@ import {
   migrateLegacyState,
   profileStorageKey,
   safeParseState
-} from "./identity-core.js?v=24";
+} from "./identity-core.js?v=25";
 
 const FIREBASE_VERSION = "12.17.1";
 const AUTH_CHOICE_KEY = "nurture-auth-choice";
@@ -217,7 +217,7 @@ async function openApp(identity, sourceState = {}) {
   document.body.classList.remove("auth-open");
   if (!appLoaded) {
     appLoaded = true;
-    await import("./app.js?v=24");
+    await import("./app.js?v=25");
   }
 }
 
@@ -274,10 +274,24 @@ async function continueWithGoogle(fromAccount = false) {
       guestButton.disabled = false;
       return;
     }
-    const provider = new services.authSdk.GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: "select_account" });
     let credential;
-    if (services.auth.currentUser?.isAnonymous) {
+    if (window.NURTURE_NATIVE?.isNative) {
+      const nativeCredential = await window.NURTURE_NATIVE.signInWithGoogle();
+      if (!nativeCredential?.idToken && !nativeCredential?.accessToken) throw new Error("Native Google sign-in did not return a credential.");
+      const googleCredential = services.authSdk.GoogleAuthProvider.credential(nativeCredential.idToken || null, nativeCredential.accessToken || null);
+      if (services.auth.currentUser?.isAnonymous) {
+        try {
+          credential = await services.authSdk.linkWithCredential(services.auth.currentUser, googleCredential);
+        } catch (error) {
+          if (!["auth/credential-already-in-use", "auth/email-already-in-use"].includes(error?.code)) throw error;
+          credential = await services.authSdk.signInWithCredential(services.auth, googleCredential);
+        }
+      } else {
+        credential = await services.authSdk.signInWithCredential(services.auth, googleCredential);
+      }
+    } else if (services.auth.currentUser?.isAnonymous) {
+      const provider = new services.authSdk.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
       try {
         credential = await services.authSdk.linkWithPopup(services.auth.currentUser, provider);
       } catch (error) {
@@ -286,6 +300,8 @@ async function continueWithGoogle(fromAccount = false) {
         credential = await services.authSdk.signInWithCredential(services.auth, existingCredential);
       }
     } else {
+      const provider = new services.authSdk.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
       credential = await services.authSdk.signInWithPopup(services.auth, provider);
     }
     if (fromAccount) accountDialog.close();
@@ -369,6 +385,7 @@ accountSyncRetry.addEventListener("click", async () => {
 accountExit.addEventListener("click", async () => {
   if (activeIdentity?.kind === "google" && firebaseServices?.auth.currentUser) {
     await firebaseServices.authSdk.signOut(firebaseServices.auth);
+    await window.NURTURE_NATIVE?.signOut();
   }
   localStorage.removeItem(AUTH_CHOICE_KEY);
   localStorage.removeItem(ACTIVE_PROFILE_KEY);

@@ -1,0 +1,26 @@
+{
+  "appId": "com.nurtureday.app",
+  "appName": "Nurture Daily",
+  "webDir": "www",
+  "backgroundColor": "#fffaf6",
+  "android": {
+    "backgroundColor": "#fffaf6",
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "LIGHT",
+      "hidden": false,
+      "animation": "NONE"
+    },
+    "FirebaseAuthentication": {
+      "skipNativeAuth": true,
+      "providers": ["google.com"]
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_nurture",
+      "iconColor": "#e98768"
+    }
+  }
+}

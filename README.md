@@ -80,6 +80,32 @@ The computer and tunnel must remain running for background reminders to arrive.
 
 On Windows, run `server/install-windows-tasks.ps1` as an administrator after configuring the tunnel. It installs the push server and Cloudflare tunnel as startup tasks with automatic restart. Run `server/remove-windows-tasks.ps1` as an administrator to remove them.
 
+## Native Android app
+
+Nurture Daily includes a Capacitor 8 Android project in `android/` using package ID `com.nurtureday.app`. The native shell draws the selected app background behind Android's edge-to-edge system bars, switches system icon contrast with light/dark mode, uses Android Credential Manager for Google sign-in, and schedules feeding alarms directly on the device.
+
+### One-time Firebase Android setup
+
+1. Open Firebase Console → **nurtureday** → **Project settings** → **General**.
+2. Under **Your apps**, choose **Add app** → **Android**.
+3. Enter Android package name `com.nurtureday.app` and app nickname `Nurture Daily`.
+4. Register the app and download `google-services.json`.
+5. Place that file at `android/app/google-services.json`. It is ignored by Git because it is environment-specific.
+6. Add the debug and release SHA-1 fingerprints to the Firebase Android app before using Google sign-in.
+
+For GitHub Actions, base64-encode the complete `google-services.json` file and save it as the repository secret `FIREBASE_ANDROID_CONFIG`.
+
+### Build locally
+
+Install Android Studio with JDK 21, then run:
+
+```text
+npm install
+npm run native:open
+```
+
+Android Studio can run the app on a connected phone and generate signed APK/AAB release files. Every push affecting the Android app also creates a debug APK under GitHub **Actions → Build Android app**.
+
 ## Run locally
 
 Serve this folder with any static web server, then open the local address in a browser. For example:

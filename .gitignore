@@ -5,3 +5,12 @@ server/node_modules/
 server/tools/
 .firebase/
 firebase-debug.log
+node_modules/
+www/
+android/.gradle/
+android/local.properties
+android/app/build/
+android/build/
+android/app/google-services.json
+*.jks
+*.keystore

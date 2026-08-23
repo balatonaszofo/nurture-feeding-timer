@@ -165,6 +165,14 @@ function decodeVapidKey(value) {
 }
 
 async function cancelPushReminder() {
+  if (window.NURTURE_NATIVE?.isNative) {
+    try {
+      await window.NURTURE_NATIVE.cancelReminder();
+    } finally {
+      pushConnected = false;
+    }
+    return;
+  }
   if (!PUSH_SERVER) return;
   try {
     await fetch(`${PUSH_SERVER}/api/reminders/${getPushDeviceId()}`, { method: "DELETE" });
@@ -175,8 +183,24 @@ async function cancelPushReminder() {
 }
 
 async function syncPushReminder() {
-  if (!PUSH_SERVER || !("serviceWorker" in navigator) || !("PushManager" in window)) return false;
   const scheduleAnchor = getScheduleAnchorFeeding();
+  if (window.NURTURE_NATIVE?.isNative) {
+    if (!alarmEnabled || !scheduleAnchor) {
+      await cancelPushReminder();
+      return false;
+    }
+    const dueAt = new Date(scheduleAnchor.getTime() + intervalHours * 3600000);
+    try {
+      pushConnected = await window.NURTURE_NATIVE.scheduleReminder(dueAt.toISOString());
+      updateAlarmUI(pushConnected ? "" : "On · allow notifications to receive background alarms");
+      return pushConnected;
+    } catch {
+      pushConnected = false;
+      updateAlarmUI("On · native alarm could not be scheduled");
+      return false;
+    }
+  }
+  if (!PUSH_SERVER || !("serviceWorker" in navigator) || !("PushManager" in window)) return false;
   if (!alarmEnabled || !scheduleAnchor) {
     await cancelPushReminder();
     return false;
@@ -795,6 +819,7 @@ function refreshThemeChrome() {
   themeMeta.setAttribute("content", themeColor);
   $("meta[name='apple-mobile-web-app-status-bar-style']").setAttribute("content", darkMode ? "black-translucent" : "default");
   document.documentElement.style?.setProperty("color-scheme", darkMode ? "dark" : "light");
+  void window.NURTURE_NATIVE?.setTheme(darkMode);
 
   // Some installed Android PWAs only repaint the native status bar when the
   // theme-color element itself changes in the document, not just its value.
@@ -1110,7 +1135,7 @@ darkModeToggle.addEventListener("click", () => {
   darkMode = !darkMode;
   applyTheme();
   save();
-  if (window.matchMedia?.("(display-mode: standalone)").matches) {
+  if (!window.NURTURE_NATIVE?.isNative && window.matchMedia?.("(display-mode: standalone)").matches) {
     // Reload once with the saved theme available to the head bootstrap. This
     // refreshes system bars on Android versions that ignore runtime updates.
     setTimeout(() => window.location.reload(), 80);
@@ -1143,6 +1168,12 @@ alarmToggle.addEventListener("click", async () => {
 });
 
 testAlarm.addEventListener("click", () => {
+  if (window.NURTURE_NATIVE?.isNative) {
+    void window.NURTURE_NATIVE.testReminder().then(scheduled => {
+      updateAlarmUI(scheduled ? "Test notification scheduled" : "Allow notifications to test the alarm");
+    });
+    return;
+  }
   void playAlarmSound();
   if ("vibrate" in navigator) navigator.vibrate([180, 90, 180]);
   void showNotification("Nurture Daily alarm test", "Your feeding reminder is ready.", "nurture-alarm-test");
@@ -1163,7 +1194,7 @@ setInterval(render, 1000);
 setInterval(renderHistory, 60000);
 setInterval(renderDiaperHistory, 60000);
 
-if ("serviceWorker" in navigator) {
+if (!window.NURTURE_NATIVE?.isNative && "serviceWorker" in navigator) {
   const controlledAtLoad = Boolean(navigator.serviceWorker.controller);
   let reloadingForUpdate = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
