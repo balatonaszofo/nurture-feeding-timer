@@ -13,7 +13,7 @@ test("website and install metadata use the Nurture Daily name", () => {
   assert.equal(manifest.theme_color, "#111a1b");
   assert.match(page, /<title>Nurture Daily · Feeding Timer<\/title>/);
   assert.match(page, /apple-mobile-web-app-title" content="Nurture Daily"/);
-  assert.equal((page.match(/class="brand-daily">daily/g) || []).length, 2);
+  assert.equal((page.match(/class="brand-daily">day/g) || []).length, 2);
 });
 
 test("launcher artwork supplies standard and maskable PNG icons", () => {
