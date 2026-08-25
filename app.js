@@ -237,7 +237,7 @@ async function syncPushReminder() {
     return true;
   } catch {
     pushConnected = false;
-    updateAlarmUI("On · background service unavailable; keep Nurture Daily active");
+    updateAlarmUI("On · background service unavailable; keep Nurture Day active");
     return false;
   }
 }
@@ -468,7 +468,7 @@ function downloadCareLog(file) {
 
 function createCareLogFile() {
   const today = localDateValue(new Date());
-  return new File(["\ufeff", buildCareLogCsv()], `nurture-daily-care-log-${today}.csv`, { type: "text/csv;charset=utf-8" });
+  return new File(["\ufeff", buildCareLogCsv()], `nurture-day-care-log-${today}.csv`, { type: "text/csv;charset=utf-8" });
 }
 
 function openExportOptions() {
@@ -496,7 +496,7 @@ async function exportCareLog() {
     }
     try {
       await navigator.share({
-        title: "Nurture Daily care log",
+        title: "Nurture Day care log",
         text: "Open this care log with Google Sheets.",
         files: [file]
       });
@@ -578,7 +578,7 @@ function parseCareLogCsv(text) {
   const headings = rows[0].map(value => value.trim().toLowerCase());
   const column = name => headings.indexOf(name.toLowerCase());
   for (const required of ["Date", "Time", "Event"]) {
-    if (column(required) < 0) throw new Error("This does not look like a Nurture Daily care-log CSV file.");
+    if (column(required) < 0) throw new Error("This does not look like a Nurture Day care-log CSV file.");
   }
   const valueAt = (row, name) => String(row[column(name)] || "").trim();
   const imported = { feedingHistory: [], feedingSessions: [], feedingDetails: {}, diaperHistory: [], diaperDetails: {} };
@@ -670,7 +670,7 @@ async function importCareLog(file) {
     mergeImportedCareLog(imported);
     importStatus.textContent = `Backup restored: ${feedingCount} ${feedingCount === 1 ? "feeding" : "feedings"} and ${diaperCount} ${diaperCount === 1 ? "diaper change" : "diaper changes"}.`;
   } catch (error) {
-    importStatus.textContent = error?.message || "Nurture Daily couldn't read that CSV backup.";
+    importStatus.textContent = error?.message || "Nurture Day couldn't read that CSV backup.";
   } finally {
     importCareLogButton.disabled = false;
     importCareLogFile.value = "";
@@ -843,13 +843,13 @@ function updateAlarmUI(message = "") {
   if (message) {
     alarmStatus.textContent = message;
   } else if (!alarmEnabled) {
-    alarmStatus.textContent = "Off · alerts work while Nurture Daily is active";
+    alarmStatus.textContent = "Off · alerts work while Nurture Day is active";
   } else if (pushConnected) {
     alarmStatus.textContent = "On · background notification scheduled";
   } else if ("Notification" in window && Notification.permission === "granted") {
     alarmStatus.textContent = "On · chime and notification while active";
   } else {
-    alarmStatus.textContent = "On · chime and vibration while Nurture Daily is open";
+    alarmStatus.textContent = "On · chime and vibration while Nurture Day is open";
   }
 }
 
@@ -1225,7 +1225,7 @@ testAlarm.addEventListener("click", () => {
   }
   void playAlarmSound();
   if ("vibrate" in navigator) navigator.vibrate([180, 90, 180]);
-  void showNotification("Nurture Daily alarm test", "Your feeding reminder is ready.", "nurture-alarm-test");
+  void showNotification("Nurture Day alarm test", "Your feeding reminder is ready.", "nurture-alarm-test");
   updateAlarmUI("Test alarm played");
 });
 

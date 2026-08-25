@@ -4,15 +4,15 @@ import test from "node:test";
 
 const rootFile = name => new URL(`../${name}`, import.meta.url);
 
-test("website and install metadata use the Nurture Daily name", () => {
+test("website and install metadata use the Nurture Day name", () => {
   const page = readFileSync(rootFile("index.html"), "utf8");
   const manifest = JSON.parse(readFileSync(rootFile("manifest.webmanifest"), "utf8"));
 
-  assert.equal(manifest.name, "Nurture Daily");
-  assert.equal(manifest.short_name, "Nurture Daily");
+  assert.equal(manifest.name, "Nurture Day");
+  assert.equal(manifest.short_name, "Nurture Day");
   assert.equal(manifest.theme_color, "#111a1b");
-  assert.match(page, /<title>Nurture Daily · Feeding Timer<\/title>/);
-  assert.match(page, /apple-mobile-web-app-title" content="Nurture Daily"/);
+  assert.match(page, /<title>Nurture Day · Feeding Timer<\/title>/);
+  assert.match(page, /apple-mobile-web-app-title" content="Nurture Day"/);
   assert.equal((page.match(/class="brand-daily">day/g) || []).length, 2);
 });
 

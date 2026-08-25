@@ -1,6 +1,6 @@
 {
-  "name": "Nurture Daily",
-  "short_name": "Nurture Daily",
+  "name": "Nurture Day",
+  "short_name": "Nurture Day",
   "description": "A private daily feeding reminder and care log for your baby's rhythm.",
   "id": "./",
   "start_url": "./",

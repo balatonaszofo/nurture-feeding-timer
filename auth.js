@@ -65,7 +65,7 @@ function currentProfileState() {
 function friendlyAuthError(error) {
   const code = String(error?.code || "");
   if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return "Google sign-in was canceled. Your existing logs are unchanged.";
-  if (code === "auth/popup-blocked") return "Your browser blocked the Google sign-in window. Allow pop-ups for Nurture Daily and try again.";
+  if (code === "auth/popup-blocked") return "Your browser blocked the Google sign-in window. Allow pop-ups for Nurture Day and try again.";
   if (code === "auth/unauthorized-domain") return "This web address must be added to Firebase Authentication's authorized domains.";
   if (code === "auth/network-request-failed") return "Google sign-in needs an internet connection. You can continue privately for now.";
   if (code === "auth/operation-not-allowed") return "This sign-in option still needs to be enabled in Firebase Authentication.";

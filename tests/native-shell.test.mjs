@@ -8,9 +8,9 @@ const config = JSON.parse(readFileSync(new URL("../capacitor.config.json", impor
 const bridge = readFileSync(new URL("../native-src/native-bridge.js", import.meta.url), "utf8");
 const manifest = readFileSync(new URL("../android/app/src/main/AndroidManifest.xml", import.meta.url), "utf8");
 
-test("Android shell uses the Nurture Daily identity and modern system bars", () => {
+test("Android shell uses the Nurture Day identity and modern system bars", () => {
   assert.equal(config.appId, "com.nurtureday.app");
-  assert.equal(config.appName, "Nurture Daily");
+  assert.equal(config.appName, "Nurture Day");
   assert.equal(config.plugins.SystemBars.insetsHandling, "css");
   assert.match(bridge, /SystemBars\.setStyle/);
   assert.match(app, /NURTURE_NATIVE\?\.setTheme\(darkMode\)/);

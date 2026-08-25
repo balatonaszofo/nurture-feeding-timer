@@ -1,4 +1,4 @@
-# Nurture Daily
+# Nurture Day
 
 A small, calming feeding timer that remembers the last feeding and automatically calculates the next one from your chosen interval.
 
@@ -65,7 +65,7 @@ npx firebase-tools deploy --only firestore:rules --project YOUR_PROJECT_ID
 
 Firebase's web configuration object identifies the public app; access control comes from Firebase Authentication and `firestore.rules`, not from hiding the API key. The rules allow a user to read or update only `/users/{their-own-uid}` and deny every other document path.
 
-The alarm is designed for use while Nurture Daily is active. Mobile operating systems may suspend browser timers when the app is in the background, even if it still appears open. Guaranteed background notifications require server-backed web push or a native mobile app.
+The alarm is designed for use while Nurture Day is active. Mobile operating systems may suspend browser timers when the app is in the background, even if it still appears open. Guaranteed background notifications require server-backed web push or a native mobile app.
 
 ## Background notification server
 
@@ -82,13 +82,13 @@ On Windows, run `server/install-windows-tasks.ps1` as an administrator after con
 
 ## Native Android app
 
-Nurture Daily includes a Capacitor 8 Android project in `android/` using package ID `com.nurtureday.app`. The native shell draws the selected app background behind Android's edge-to-edge system bars, switches system icon contrast with light/dark mode, uses Android Credential Manager for Google sign-in, and schedules feeding alarms directly on the device.
+Nurture Day includes a Capacitor 8 Android project in `android/` using package ID `com.nurtureday.app`. The native shell draws the selected app background behind Android's edge-to-edge system bars, switches system icon contrast with light/dark mode, uses Android Credential Manager for Google sign-in, and schedules feeding alarms directly on the device.
 
 ### One-time Firebase Android setup
 
 1. Open Firebase Console → **nurtureday** → **Project settings** → **General**.
 2. Under **Your apps**, choose **Add app** → **Android**.
-3. Enter Android package name `com.nurtureday.app` and app nickname `Nurture Daily`.
+3. Enter Android package name `com.nurtureday.app` and app nickname `Nurture Day`.
 4. Register the app and download `google-services.json`.
 5. Place that file at `android/app/google-services.json`. It is ignored by Git because it is environment-specific.
 6. Add the debug and release SHA-1 fingerprints to the Firebase Android app before using Google sign-in.

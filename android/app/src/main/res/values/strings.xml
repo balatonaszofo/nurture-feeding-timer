@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Nurture Daily</string>
-    <string name="title_activity_main">Nurture Daily</string>
+    <string name="app_name">Nurture Day</string>
+    <string name="title_activity_main">Nurture Day</string>
     <string name="package_name">com.nurtureday.app</string>
     <string name="custom_url_scheme">com.nurtureday.app</string>
 </resources>

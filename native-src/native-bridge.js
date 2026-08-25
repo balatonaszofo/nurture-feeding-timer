@@ -49,7 +49,7 @@ async function scheduleReminder(dueAt) {
     notifications: [{
       id: REMINDER_ID,
       title: "Time for the next feeding",
-      body: "Nurture Daily says your feeding interval is up.",
+      body: "Nurture Day says your feeding interval is up.",
       schedule: { at, allowWhileIdle: true },
       autoCancel: true,
       foreground: true,
@@ -65,7 +65,7 @@ async function testReminder() {
   await LocalNotifications.schedule({
     notifications: [{
       id: TEST_REMINDER_ID,
-      title: "Nurture Daily alarm test",
+      title: "Nurture Day alarm test",
       body: "Your feeding reminder is ready.",
       schedule: { at: new Date(Date.now() + 1200) },
       autoCancel: true,
