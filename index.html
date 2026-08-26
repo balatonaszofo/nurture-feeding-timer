@@ -64,7 +64,7 @@
           <li><span>⌂</span><div><strong>Your log stays yours</strong><small>Choose a Google profile or a private guest space.</small></div></li>
         </ul>
         <button id="welcome-continue" class="onboarding-primary" type="button">Get started <span aria-hidden="true">→</span></button>
-        <p class="onboarding-footnote">Nurture Day supports your routine and does not replace medical guidance.</p>
+        <p class="onboarding-footnote">Nurture Day supports your routine and does not replace medical guidance. Basic usage metrics never include your care log.</p>
       </section>
 
       <section id="signin-step" class="onboarding-panel signin-panel" aria-labelledby="signin-title" hidden>
@@ -364,7 +364,7 @@
         <input id="import-care-log-file" type="file" accept=".csv,text/csv" hidden />
         <p id="import-status" class="import-status" role="status" aria-live="polite"></p>
         <button id="account-exit" class="account-exit" type="button">Return to welcome</button>
-        <p class="account-privacy-copy">Care logs are partitioned by profile. Nurture Day never makes one person's records available to another account.</p>
+        <p class="account-privacy-copy">Care logs are partitioned by profile. Nurture Day never makes one person's records available to another account. Basic usage metrics never include care-log details.</p>
         <button id="done-account" class="dialog-save" type="button">Done</button>
       </div>
     </dialog>
@@ -393,6 +393,6 @@
     <script src="push-config.js?v=27"></script>
     <script src="firebase-config.js?v=27"></script>
     <script type="module" src="native-bridge.js?v=27"></script>
-    <script type="module" src="auth.js?v=27"></script>
+    <script type="module" src="auth.js?v=30"></script>
   </body>
 </html>

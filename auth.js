@@ -11,6 +11,7 @@ import {
   profileStorageKey,
   safeParseState
 } from "./identity-core.js?v=25";
+import { trackNurtureEvent } from "./analytics.js?v=30";
 
 const FIREBASE_VERSION = "12.17.1";
 const AUTH_CHOICE_KEY = "nurture-auth-choice";
@@ -82,7 +83,7 @@ async function loadFirebase() {
     import(`${base}/firebase-auth.js`),
     import(`${base}/firebase-firestore.js`)
   ]);
-  const firebaseApp = appSdk.initializeApp(config);
+  const firebaseApp = appSdk.getApps().length ? appSdk.getApp() : appSdk.initializeApp(config);
   const auth = authSdk.getAuth(firebaseApp);
   try {
     await authSdk.setPersistence(auth, authSdk.browserLocalPersistence);
@@ -215,6 +216,7 @@ async function openApp(identity, sourceState = {}) {
   authGate.hidden = true;
   appShell.hidden = false;
   document.body.classList.remove("auth-open");
+  trackNurtureEvent("nurture_app_opened", { access_mode: identity.kind === "google" ? "google" : "guest" });
   if (!appLoaded) {
     appLoaded = true;
     await import("./app.js?v=27");
@@ -366,13 +368,22 @@ async function start() {
   }
 }
 
-document.querySelector("#welcome-continue").addEventListener("click", () => showStep(signInStep));
+document.querySelector("#welcome-continue").addEventListener("click", () => {
+  trackNurtureEvent("onboarding_started");
+  showStep(signInStep);
+});
 document.querySelector("#signin-back").addEventListener("click", () => {
   setMessage();
   showStep(welcomeStep);
 });
-googleButton.addEventListener("click", () => void continueWithGoogle());
-guestButton.addEventListener("click", () => void continueAsGuest());
+googleButton.addEventListener("click", () => {
+  trackNurtureEvent("sign_in_selected", { method: "google" });
+  void continueWithGoogle();
+});
+guestButton.addEventListener("click", () => {
+  trackNurtureEvent("sign_in_selected", { method: "guest" });
+  void continueAsGuest();
+});
 accountButton.addEventListener("click", () => accountDialog.showModal());
 document.querySelector("#close-account").addEventListener("click", () => accountDialog.close());
 document.querySelector("#done-account").addEventListener("click", () => accountDialog.close());

@@ -65,6 +65,10 @@ npx firebase-tools deploy --only firestore:rules --project YOUR_PROJECT_ID
 
 Firebase's web configuration object identifies the public app; access control comes from Firebase Authentication and `firestore.rules`, not from hiding the API key. The rules allow a user to read or update only `/users/{their-own-uid}` and deny every other document path.
 
+## Metrics
+
+Production visits and a small onboarding funnel are measured with the Google Analytics property already connected to Firebase. Care-log data and user identifiers are never included in custom analytics events. See [ANALYTICS.md](ANALYTICS.md) for the dashboard steps, event definitions, and privacy boundaries.
+
 The alarm is designed for use while Nurture Day is active. Mobile operating systems may suspend browser timers when the app is in the background, even if it still appears open. Guaranteed background notifications require server-backed web push or a native mobile app.
 
 ## Background notification server

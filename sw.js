@@ -1,7 +1,7 @@
-const CACHE = "nurture-day-v29";
+const CACHE = "nurture-day-v30";
 const ASSETS = [
   "./", "./index.html", "./styles.css?v=27", "./push-config.js?v=27", "./firebase-config.js?v=27",
-  "./identity-core.js?v=27", "./native-bridge.js?v=27", "./auth.js?v=27", "./app.js?v=27", "./manifest.webmanifest?v=27", "./icon.svg?v=20",
+  "./identity-core.js?v=27", "./analytics.js?v=30", "./native-bridge.js?v=27", "./auth.js?v=30", "./app.js?v=27", "./manifest.webmanifest?v=27", "./icon.svg?v=20",
   "./icons/icon-180.png?v=20", "./icons/icon-192.png?v=20", "./icons/icon-512.png?v=20"
 ];
 
