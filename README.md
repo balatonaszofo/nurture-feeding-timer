@@ -2,6 +2,12 @@
 
 A small, calming feeding timer that remembers the last feeding and automatically calculates the next one from your chosen interval.
 
+## Brand and social assets
+
+- [`assets/brand/nurture-day-logo-transparent.svg`](assets/brand/nurture-day-logo-transparent.svg) is the scalable transparent Nurture Day wordmark for Figma and other design tools.
+- [`assets/social/nurture-day-social-post.png`](assets/social/nurture-day-social-post.png) is the finished vertical social post graphic.
+- [`assets/social/nurture-day-social-background.png`](assets/social/nurture-day-social-background.png) contains only the textured background and circular bands for remixing.
+
 ## What it does
 
 - Log a feeding with one tap

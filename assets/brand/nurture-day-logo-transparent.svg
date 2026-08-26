@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 150" role="img" aria-labelledby="title description">
+  <title id="title">Nurture Day</title>
+  <desc id="description">Nurture Day wordmark with three coral rhythm bars on a transparent background.</desc>
+  <g fill="#ef9978" transform="translate(26 36) rotate(-12 42 42)">
+    <rect x="0" y="42" width="16" height="36" rx="8"/>
+    <rect x="24" y="14" width="16" height="64" rx="8"/>
+    <rect x="48" y="30" width="16" height="48" rx="8"/>
+  </g>
+  <text x="112" y="103" fill="#e7efed" font-family="Fraunces, Georgia, serif" font-size="78" font-weight="700" letter-spacing="-3">nurture</text>
+  <text x="446" y="103" fill="#ef9978" font-family="DM Sans, Arial, sans-serif" font-size="25" font-weight="700" letter-spacing="4">DAY</text>
+</svg>
