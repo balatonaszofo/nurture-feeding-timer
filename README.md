@@ -21,7 +21,7 @@ A small, calming feeding timer that remembers the last feeding and automatically
 - Count feedings and review a complete timetable grouped by day
 - Log diaper changes, see today's count, undo mistakes, and review change history
 - Classify diaper changes as pee, poo, or both
-- Log whether baby's head is turned left, right, or centered while resting on their back, with undo and history
+- Time how long baby's head is turned left, right, or centered while resting on their back, with quick switching, undo, and history
 - Export all feeding, diaper, and head-position history as a Google Sheets-ready CSV file
 - Welcome new families with a two-step onboarding experience
 - Keep every browser or signed-in account in a separate private profile

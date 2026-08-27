@@ -10,7 +10,7 @@ import {
   migrateLegacyState,
   profileStorageKey,
   safeParseState
-} from "./identity-core.js?v=31";
+} from "./identity-core.js?v=32";
 import { trackNurtureEvent } from "./analytics.js?v=30";
 
 const FIREBASE_VERSION = "12.17.1";
@@ -219,7 +219,7 @@ async function openApp(identity, sourceState = {}) {
   trackNurtureEvent("nurture_app_opened", { access_mode: identity.kind === "google" ? "google" : "guest" });
   if (!appLoaded) {
     appLoaded = true;
-    await import("./app.js?v=31");
+    await import("./app.js?v=32");
   }
 }
 

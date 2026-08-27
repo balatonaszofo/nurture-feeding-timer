@@ -83,6 +83,20 @@ test("a head-position-only profile counts as care data", () => {
   assert.equal(hasCareData({ headPositionHistory: ["2026-08-20T19:00:00.000Z"] }), true);
 });
 
+test("cloud merging keeps a completed head-position timer over an active copy", () => {
+  const startedAt = "2026-08-20T19:00:00.000Z";
+  const endedAt = "2026-08-20T19:20:00.000Z";
+  const merged = mergeCareStates({
+    headPositionHistory: [startedAt],
+    headPositionDetails: { [startedAt]: { position: "left", endAt: endedAt } }
+  }, {
+    headPositionHistory: [startedAt],
+    headPositionDetails: { [startedAt]: { position: "left", endAt: null } }
+  });
+
+  assert.equal(merged.headPositionDetails[startedAt].endAt, endedAt);
+});
+
 test("Firebase connection requires the complete public web config", () => {
   assert.equal(isFirebaseConfigured({}), false);
   assert.equal(isFirebaseConfigured({ apiKey: "YOUR_KEY", authDomain: "x", projectId: "x", appId: "x" }), false);

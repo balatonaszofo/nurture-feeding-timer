@@ -54,6 +54,7 @@ test("head-position tracking offers left, centered, and right with history and s
   const app = readFileSync(rootFile("app.js"), "utf8");
 
   assert.match(page, /id="log-head-position"/);
+  assert.match(page, /id="head-position-session-controls"[^]*id="stop-head-position"/);
   assert.match(page, /name="head-position" value="left"/);
   assert.match(page, /name="head-position" value="back"/);
   assert.match(page, /name="head-position" value="right"/);
@@ -61,4 +62,5 @@ test("head-position tracking offers left, centered, and right with history and s
   assert.match(page, /id="head-position-history-dialog"/);
   assert.match(app, /headPositionHistory/);
   assert.match(app, /headPositionDetails/);
+  assert.match(app, /function stopHeadPosition/);
 });

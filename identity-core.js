@@ -74,6 +74,26 @@ function mergeSessions(primary, secondary) {
   return [...sessions.values()].sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
 }
 
+function mergeHeadPositionDetails(primary, secondary) {
+  const merged = {};
+  [...Object.entries(primary || {}), ...Object.entries(secondary || {})].forEach(([loggedAt, candidate]) => {
+    if (!candidate || typeof candidate !== "object") return;
+    const current = merged[loggedAt];
+    if (!current) {
+      merged[loggedAt] = { ...candidate };
+      return;
+    }
+    const next = { ...current, ...candidate };
+    const currentEnd = current.endAt && !Number.isNaN(new Date(current.endAt).getTime()) ? current.endAt : null;
+    const candidateEnd = candidate.endAt && !Number.isNaN(new Date(candidate.endAt).getTime()) ? candidate.endAt : null;
+    if (currentEnd || candidateEnd) next.endAt = candidateEnd || currentEnd;
+    else if (Object.prototype.hasOwnProperty.call(candidate, "endAt")) next.endAt = candidate.endAt;
+    else if (Object.prototype.hasOwnProperty.call(current, "endAt")) next.endAt = current.endAt;
+    merged[loggedAt] = next;
+  });
+  return merged;
+}
+
 function newestDate(values) {
   return validDates(values).at(-1) || null;
 }
@@ -98,7 +118,7 @@ export function mergeCareStates(primary = {}, secondary = {}) {
     diaperHistory,
     diaperDetails: { ...(first.diaperDetails || {}), ...(second.diaperDetails || {}) },
     headPositionHistory,
-    headPositionDetails: { ...(first.headPositionDetails || {}), ...(second.headPositionDetails || {}) },
+    headPositionDetails: mergeHeadPositionDetails(first.headPositionDetails, second.headPositionDetails),
     darkMode: typeof second.darkMode === "boolean"
       ? second.darkMode
       : typeof first.darkMode === "boolean" ? first.darkMode : true,

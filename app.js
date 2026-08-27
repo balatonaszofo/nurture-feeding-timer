@@ -59,7 +59,11 @@ const headPositionDetails = {};
 const storedHeadPositionDetails = state.headPositionDetails && typeof state.headPositionDetails === "object" && !Array.isArray(state.headPositionDetails) ? state.headPositionDetails : {};
 Object.entries(storedHeadPositionDetails).forEach(([loggedAt, details]) => {
   if (Number.isNaN(new Date(loggedAt).getTime()) || !details || typeof details !== "object") return;
-  if (["left", "right", "back"].includes(details.position)) headPositionDetails[loggedAt] = { position: details.position };
+  if (!["left", "right", "back"].includes(details.position)) return;
+  const savedDetails = { position: details.position };
+  if (details.endAt === null) savedDetails.endAt = null;
+  if (details.endAt && !Number.isNaN(new Date(details.endAt).getTime()) && new Date(details.endAt) >= new Date(loggedAt)) savedDetails.endAt = details.endAt;
+  headPositionDetails[loggedAt] = savedDetails;
 });
 let lastFeeding = feedingHistory.length ? new Date(feedingHistory[feedingHistory.length - 1]) : null;
 let alarmEnabled = state.alarmEnabled === true;
@@ -112,6 +116,9 @@ const headPositionTimetable = $("#head-position-timetable");
 const undoHeadPosition = $("#undo-head-position");
 const headPositionLogDialog = $("#head-position-log-dialog");
 const headPositionLogForm = $("#head-position-log-form");
+const headPositionButtonLabel = $("#head-position-button-label");
+const headPositionSessionControls = $("#head-position-session-controls");
+const headPositionElapsed = $("#head-position-elapsed");
 const darkModeToggle = $("#dark-mode-toggle");
 const exportCareLogButton = $("#export-care-log");
 const exportStatus = $("#export-status");
@@ -297,6 +304,10 @@ function getActiveFeedingSession() {
   return [...feedingSessions].reverse().find(session => !session.endAt) || null;
 }
 
+function getActiveHeadPositionSession() {
+  return [...headPositionHistory].reverse().find(loggedAt => headPositionDetails[loggedAt]?.endAt === null) || null;
+}
+
 function getScheduleAnchorFeeding() {
   for (let index = feedingHistory.length - 1; index >= 0; index -= 1) {
     const startAt = feedingHistory[index];
@@ -462,11 +473,20 @@ function buildCareLogCsv() {
   headPositionHistory.forEach(loggedAt => {
     const logged = new Date(loggedAt);
     if (Number.isNaN(logged.getTime())) return;
+    const details = headPositionDetails[loggedAt] || {};
+    const tracksDuration = Object.prototype.hasOwnProperty.call(details, "endAt");
+    const ended = details.endAt ? new Date(details.endAt) : null;
+    const validEnd = ended && !Number.isNaN(ended.getTime()) ? ended : null;
+    const sessionStatus = !tracksDuration ? "Not tracked" : validEnd ? "Completed" : "In progress";
+    const durationEnd = validEnd || new Date();
+    const durationMinutes = tracksDuration ? Math.max(0, Math.round((durationEnd - logged) / 6000) / 10) : "";
     events.push({
       timestamp: logged.getTime(),
       cells: [
         localDateValue(logged), localTimeValue(logged), "Head position",
-        "", "", "", "", "", "", "", "", "", "", headPositionLabel(headPositionDetails[loggedAt]?.position)
+        "", "", "", "", sessionStatus,
+        validEnd ? localDateValue(validEnd) : "", validEnd ? localTimeValue(validEnd) : "",
+        durationMinutes, "", "", headPositionLabel(details.position)
       ]
     });
   });
@@ -671,7 +691,18 @@ function parseCareLogCsv(text) {
       imported.headPositionHistory.push(startedAt);
       const positionValue = valueAt(row, "Head position").toLowerCase();
       const position = positionValue === "left" ? "left" : positionValue === "right" ? "right" : ["back", "center", "centered", "back / centered"].includes(positionValue) ? "back" : null;
-      if (position) imported.headPositionDetails[startedAt] = { position };
+      if (position) {
+        const details = { position };
+        const sessionStatus = valueAt(row, "Session status").toLowerCase();
+        if (sessionStatus === "completed") {
+          const endedAt = csvLocalDateTime(valueAt(row, "End date"), valueAt(row, "End time"));
+          if (!endedAt || new Date(endedAt) < new Date(startedAt)) throw new Error(`Row ${rowIndex + 2} has an invalid head-position end time.`);
+          details.endAt = endedAt;
+        } else if (sessionStatus === "in progress") {
+          details.endAt = null;
+        }
+        imported.headPositionDetails[startedAt] = details;
+      }
     }
   });
 
@@ -700,7 +731,12 @@ function mergeImportedCareLog(imported) {
     diaperDetails[changedAt] = diaperDetails[changedAt] || details;
   });
   Object.entries(imported.headPositionDetails).forEach(([loggedAt, details]) => {
-    headPositionDetails[loggedAt] = headPositionDetails[loggedAt] || details;
+    const current = headPositionDetails[loggedAt];
+    if (!current) {
+      headPositionDetails[loggedAt] = details;
+    } else if (!current.endAt && details.endAt) {
+      current.endAt = details.endAt;
+    }
   });
   lastFeeding = feedingHistory.length ? new Date(feedingHistory[feedingHistory.length - 1]) : null;
   lastAlarmedFor = null;
@@ -887,14 +923,28 @@ function renderDiaperHistory() {
   });
 }
 
+function updateHeadPositionTimer() {
+  const activeAt = getActiveHeadPositionSession();
+  headPositionSessionControls.hidden = !activeAt;
+  headPositionButtonLabel.textContent = activeAt ? "Change head position" : "Start head-position timer";
+  if (!activeAt) return;
+  const activeDetails = headPositionDetails[activeAt];
+  const elapsed = new Date() - new Date(activeAt);
+  const label = headPositionLabel(activeDetails?.position);
+  headPositionElapsed.textContent = `${label} · ${formatElapsed(elapsed)} elapsed`;
+  $("#last-head-position").textContent = `Current position: ${label} · ${formatElapsed(elapsed)} elapsed`;
+}
+
 function renderHeadPositionHistory() {
   const positions = headPositionHistory.map(value => new Date(value)).filter(date => !Number.isNaN(date.getTime())).sort((a, b) => b - a);
   const todayKey = localDayKey(new Date());
   const todayCount = positions.filter(date => localDayKey(date) === todayKey).length;
   $("#head-position-count").textContent = todayCount;
   $("#head-position-count-label").textContent = todayCount === 1 ? "log today" : "logs today";
-  const latestPosition = positions.length ? headPositionLabel(headPositionDetails[positions[0].toISOString()]?.position) : "";
-  $("#last-head-position").textContent = positions.length ? `Last position: ${latestPosition} · ${formatDateTime(positions[0])} · ${positions.length} total` : "No head positions logged yet";
+  const latestDetails = positions.length ? headPositionDetails[positions[0].toISOString()] || {} : {};
+  const latestPosition = positions.length ? headPositionLabel(latestDetails.position) : "";
+  const latestDuration = latestDetails.endAt ? formatSessionDuration(new Date(latestDetails.endAt) - positions[0]) : "";
+  $("#last-head-position").textContent = positions.length ? `Last position: ${latestPosition}${latestDuration ? ` · ${latestDuration}` : ""} · ${formatDateTime(positions[0])} · ${positions.length} total` : "No head positions logged yet";
   $("#head-position-dialog-summary").textContent = `${todayCount} ${todayCount === 1 ? "log" : "logs"} today · ${positions.length} total`;
   updateExportAvailability();
   undoHeadPosition.disabled = positions.length === 0;
@@ -912,7 +962,7 @@ function renderHeadPositionHistory() {
   positions.forEach((date, index) => {
     const key = localDayKey(date);
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push({ date, olderPosition: positions[index + 1] || null, position: headPositionDetails[date.toISOString()]?.position || null });
+    groups.get(key).push({ date, olderPosition: positions[index + 1] || null, positionDetails: headPositionDetails[date.toISOString()] || {} });
   });
 
   groups.forEach((entries, key) => {
@@ -922,7 +972,7 @@ function renderHeadPositionHistory() {
     heading.textContent = key === todayKey ? "Today" : new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric" }).format(entries[0].date);
     const list = document.createElement("ol");
     list.className = "timetable-list";
-    entries.forEach(({ date, olderPosition, position }) => {
+    entries.forEach(({ date, olderPosition, positionDetails }) => {
       const item = document.createElement("li");
       item.className = "timetable-item";
       const dot = document.createElement("span");
@@ -935,17 +985,27 @@ function renderHeadPositionHistory() {
       details.className = "timetable-details";
       const positionLabel = document.createElement("strong");
       positionLabel.className = "head-position-label";
-      positionLabel.textContent = headPositionLabel(position);
+      positionLabel.textContent = headPositionLabel(positionDetails.position);
+      const duration = document.createElement("span");
+      duration.className = "session-duration";
+      if (!Object.prototype.hasOwnProperty.call(positionDetails, "endAt")) {
+        duration.textContent = "Duration not tracked";
+      } else if (positionDetails.endAt) {
+        duration.textContent = `${formatSessionDuration(new Date(positionDetails.endAt) - date)} timed`;
+      } else {
+        duration.textContent = `${formatElapsed(new Date() - date)} · In progress`;
+      }
       const gap = document.createElement("span");
       gap.className = "timetable-gap";
       gap.textContent = olderPosition ? formatGap(date - olderPosition) : "First logged position";
-      details.append(positionLabel, gap);
+      details.append(positionLabel, duration, gap);
       item.append(dot, time, details);
       list.append(item);
     });
     section.append(heading, list);
     headPositionTimetable.append(section);
   });
+  updateHeadPositionTimer();
 }
 
 function setGreeting() {
@@ -1056,6 +1116,7 @@ async function triggerFeedingAlarm(due) {
 }
 
 function render() {
+  updateHeadPositionTimer();
   const activeSession = getActiveFeedingSession();
   const scheduleAnchor = getScheduleAnchorFeeding();
   const feedingInProgress = Boolean(activeSession);
@@ -1172,13 +1233,34 @@ function undoLastDiaperChange() {
 
 function logHeadPosition(date = new Date(), position = null) {
   if (!["left", "right", "back"].includes(position)) return;
-  const loggedAt = date.toISOString();
+  const activeSessions = headPositionHistory.filter(loggedAt => headPositionDetails[loggedAt]?.endAt === null);
+  const activeAt = activeSessions.at(-1) || null;
+  activeSessions.forEach(loggedAt => {
+    headPositionDetails[loggedAt].endAt = new Date(Math.max(new Date(loggedAt).getTime(), date.getTime())).toISOString();
+  });
+  const startDate = activeAt && date.toISOString() === activeAt ? new Date(date.getTime() + 1) : date;
+  const loggedAt = startDate.toISOString();
   headPositionHistory.push(loggedAt);
-  headPositionDetails[loggedAt] = { position };
+  headPositionDetails[loggedAt] = { position, endAt: null };
   headPositionHistory = [...new Set(headPositionHistory)].sort((a, b) => new Date(a) - new Date(b));
   save();
   renderHeadPositionHistory();
-  $("#head-position-announcement").textContent = `${headPositionLabel(position)} head position logged at ${formatTime(date)}.`;
+  $("#head-position-announcement").textContent = `${headPositionLabel(position)} head-position timer started at ${formatTime(startDate)}.`;
+}
+
+function stopHeadPosition(date = new Date()) {
+  const activeAt = getActiveHeadPositionSession();
+  if (!activeAt) return;
+  const started = new Date(activeAt);
+  const ended = new Date(Math.max(started.getTime(), date.getTime()));
+  headPositionHistory.filter(loggedAt => headPositionDetails[loggedAt]?.endAt === null).forEach(loggedAt => {
+    headPositionDetails[loggedAt].endAt = new Date(Math.max(new Date(loggedAt).getTime(), date.getTime())).toISOString();
+  });
+  const position = headPositionLabel(headPositionDetails[activeAt].position);
+  const duration = formatSessionDuration(ended - started);
+  save();
+  renderHeadPositionHistory();
+  $("#head-position-announcement").textContent = `${position} head-position timer stopped after ${duration}.`;
 }
 
 function undoLastHeadPosition() {
@@ -1292,6 +1374,7 @@ headPositionLogForm.addEventListener("submit", event => {
   headPositionLogDialog.close();
 });
 undoHeadPosition.addEventListener("click", undoLastHeadPosition);
+$("#stop-head-position").addEventListener("click", () => stopHeadPosition());
 $("#view-head-positions").addEventListener("click", () => {
   renderHeadPositionHistory();
   headPositionHistoryDialog.showModal();

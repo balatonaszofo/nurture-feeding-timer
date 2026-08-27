@@ -130,6 +130,35 @@ test("a Nurture CSV backup restores head positions and accepts centered as back"
   assert.equal(restored.headPositionDetails[restored.headPositionHistory[1]].position, "back");
 });
 
+test("a timed head position preserves its completed duration through CSV", () => {
+  const app = loadApp({});
+  const started = new Date("2026-08-20T18:00:00.000Z");
+  const ended = new Date("2026-08-20T18:15:00.000Z");
+
+  app.logHeadPosition(started, "right");
+  app.stopHeadPosition(ended);
+  const csv = app.buildCareLogCsv();
+  const restored = app.parseCareLogCsv(csv);
+  const loggedAt = restored.headPositionHistory[0];
+
+  assert.match(csv, /"Head position"[^\r\n]*"Completed"[^\r\n]*"15"[^\r\n]*"Right"/);
+  assert.equal(restored.headPositionDetails[loggedAt].position, "right");
+  assert.equal(restored.headPositionDetails[loggedAt].endAt, ended.toISOString());
+});
+
+test("switching head position closes the previous timer and starts the next", () => {
+  const app = loadApp({});
+  app.logHeadPosition(new Date("2026-08-20T18:00:00.000Z"), "left");
+  app.logHeadPosition(new Date("2026-08-20T18:10:00.000Z"), "right");
+  app.stopHeadPosition(new Date("2026-08-20T18:25:00.000Z"));
+
+  const restored = app.parseCareLogCsv(app.buildCareLogCsv());
+  const [leftAt, rightAt] = restored.headPositionHistory;
+
+  assert.equal(restored.headPositionDetails[leftAt].endAt, rightAt);
+  assert.equal(new Date(restored.headPositionDetails[rightAt].endAt) - new Date(rightAt), 15 * 60000);
+});
+
 test("restoring the same CSV deduplicates its event timestamps", () => {
   const app = loadApp({});
   const csv = [

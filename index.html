@@ -41,7 +41,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=31" />
+    <link rel="stylesheet" href="styles.css?v=32" />
   </head>
   <body>
     <div id="auth-gate" class="auth-gate">
@@ -180,8 +180,12 @@
         </div>
         <button id="log-head-position" class="head-position-log-button" type="button">
           <span aria-hidden="true">＋</span>
-          Log head position
+          <span id="head-position-button-label">Start head-position timer</span>
         </button>
+        <div id="head-position-session-controls" class="head-position-session-controls" hidden>
+          <span class="session-status"><span class="session-pulse" aria-hidden="true"></span><span id="head-position-elapsed">0 sec elapsed</span></span>
+          <button id="stop-head-position" type="button">Stop timer</button>
+        </div>
         <div class="head-position-actions">
           <button id="undo-head-position" type="button" disabled>Undo last</button>
           <button id="view-head-positions" type="button">View history <span aria-hidden="true">→</span></button>
@@ -382,7 +386,7 @@
           </div>
         </fieldset>
         <p class="head-position-safety">For safe sleep, place baby on their back and follow your pediatrician's guidance. This records head direction only.</p>
-        <button class="dialog-save" value="default">Log head position</button>
+        <button class="dialog-save" value="default">Start timer</button>
       </form>
     </dialog>
 
@@ -443,6 +447,6 @@
     <script src="push-config.js?v=27"></script>
     <script src="firebase-config.js?v=27"></script>
     <script type="module" src="native-bridge.js?v=27"></script>
-    <script type="module" src="auth.js?v=31"></script>
+    <script type="module" src="auth.js?v=32"></script>
   </body>
 </html>
