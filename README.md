@@ -21,7 +21,8 @@ A small, calming feeding timer that remembers the last feeding and automatically
 - Count feedings and review a complete timetable grouped by day
 - Log diaper changes, see today's count, undo mistakes, and review change history
 - Classify diaper changes as pee, poo, or both
-- Export all feeding and diaper history as a Google Sheets-ready CSV file
+- Log whether baby's head is turned left, right, or centered while resting on their back, with undo and history
+- Export all feeding, diaper, and head-position history as a Google Sheets-ready CSV file
 - Welcome new families with a two-step onboarding experience
 - Keep every browser or signed-in account in a separate private profile
 - Continue with Google for a recoverable cloud profile or without Google as a private guest
@@ -47,7 +48,7 @@ Once GitHub Pages is enabled, open the published site on your phone.
 2. Open the browser menu.
 3. Choose **Install app** or **Add to Home screen**.
 
-Until Firebase is connected, all feeding and diaper-change data stays in that browser on that device. It is not uploaded to a server or shared between devices.
+Until Firebase is connected, all feeding, diaper-change, and head-position data stays in that browser on that device. It is not uploaded to a server or shared between devices.
 
 When Firebase is connected, Google and anonymous guest profiles store an encrypted-in-transit backup in Cloud Firestore. Firestore rules restrict each profile document to the matching Firebase Authentication UID. A guest profile has no email or Google identity and is recoverable only from the browser where it was created. Existing pre-profile history is claimed by the first profile selected and is never offered to a second account on the same browser.
 

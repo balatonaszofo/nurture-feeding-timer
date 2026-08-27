@@ -50,6 +50,17 @@ Object.entries(storedDiaperDetails).forEach(([changedAt, details]) => {
   if (Number.isNaN(new Date(changedAt).getTime()) || !details || typeof details !== "object") return;
   if (["pee", "poo", "both"].includes(details.type)) diaperDetails[changedAt] = { type: details.type };
 });
+const storedHeadPositions = Array.isArray(state.headPositionHistory) ? state.headPositionHistory : [];
+let headPositionHistory = [...new Set(storedHeadPositions.filter(value => {
+  if (!value) return false;
+  return !Number.isNaN(new Date(value).getTime());
+}))].sort((a, b) => new Date(a) - new Date(b));
+const headPositionDetails = {};
+const storedHeadPositionDetails = state.headPositionDetails && typeof state.headPositionDetails === "object" && !Array.isArray(state.headPositionDetails) ? state.headPositionDetails : {};
+Object.entries(storedHeadPositionDetails).forEach(([loggedAt, details]) => {
+  if (Number.isNaN(new Date(loggedAt).getTime()) || !details || typeof details !== "object") return;
+  if (["left", "right", "back"].includes(details.position)) headPositionDetails[loggedAt] = { position: details.position };
+});
 let lastFeeding = feedingHistory.length ? new Date(feedingHistory[feedingHistory.length - 1]) : null;
 let alarmEnabled = state.alarmEnabled === true;
 let lastAlarmedFor = state.lastAlarmedFor || null;
@@ -96,6 +107,11 @@ const diaperTimetable = $("#diaper-timetable");
 const undoDiaper = $("#undo-diaper");
 const diaperLogDialog = $("#diaper-log-dialog");
 const diaperLogForm = $("#diaper-log-form");
+const headPositionHistoryDialog = $("#head-position-history-dialog");
+const headPositionTimetable = $("#head-position-timetable");
+const undoHeadPosition = $("#undo-head-position");
+const headPositionLogDialog = $("#head-position-log-dialog");
+const headPositionLogForm = $("#head-position-log-form");
 const darkModeToggle = $("#dark-mode-toggle");
 const exportCareLogButton = $("#export-care-log");
 const exportStatus = $("#export-status");
@@ -115,6 +131,8 @@ function save() {
     feedingDetails,
     diaperHistory,
     diaperDetails,
+    headPositionHistory,
+    headPositionDetails,
     darkMode,
     amountUnitPreference,
     alarmEnabled,
@@ -377,6 +395,10 @@ function diaperTypeLabel(value) {
   return value === "pee" ? "Pee" : value === "poo" ? "Poo" : value === "both" ? "Pee + poo" : "Type not recorded";
 }
 
+function headPositionLabel(value) {
+  return value === "left" ? "Left" : value === "right" ? "Right" : value === "back" ? "Back / centered" : "Position not recorded";
+}
+
 function localDateValue(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -420,7 +442,7 @@ function buildCareLogCsv() {
         metadata.amount ? (metadata.amountUnit === "ml" ? "mL" : "oz") : "", sessionStatus,
         ended && !Number.isNaN(ended.getTime()) ? localDateValue(ended) : "",
         ended && !Number.isNaN(ended.getTime()) ? localTimeValue(ended) : "",
-        durationMinutes, metadata.notes || "", ""
+        durationMinutes, metadata.notes || "", "", ""
       ]
     });
   });
@@ -432,7 +454,19 @@ function buildCareLogCsv() {
       timestamp: changed.getTime(),
       cells: [
         localDateValue(changed), localTimeValue(changed), "Diaper change",
-        "", "", "", "", "", "", "", "", "", diaperTypeLabel(diaperDetails[changedAt]?.type)
+        "", "", "", "", "", "", "", "", "", diaperTypeLabel(diaperDetails[changedAt]?.type), ""
+      ]
+    });
+  });
+
+  headPositionHistory.forEach(loggedAt => {
+    const logged = new Date(loggedAt);
+    if (Number.isNaN(logged.getTime())) return;
+    events.push({
+      timestamp: logged.getTime(),
+      cells: [
+        localDateValue(logged), localTimeValue(logged), "Head position",
+        "", "", "", "", "", "", "", "", "", "", headPositionLabel(headPositionDetails[loggedAt]?.position)
       ]
     });
   });
@@ -440,16 +474,16 @@ function buildCareLogCsv() {
   events.sort((a, b) => a.timestamp - b.timestamp);
   const headings = [
     "Date", "Time", "Event", "Feeding type", "Milk type", "Amount", "Amount unit", "Session status",
-    "End date", "End time", "Duration (minutes)", "Notes", "Diaper contents"
+    "End date", "End time", "Duration (minutes)", "Notes", "Diaper contents", "Head position"
   ];
   return [headings, ...events.map(event => event.cells)].map(row => row.map(csvCell).join(",")).join("\r\n");
 }
 
 function updateExportAvailability() {
-  const isEmpty = !feedingHistory.length && !diaperHistory.length;
+  const isEmpty = !feedingHistory.length && !diaperHistory.length && !headPositionHistory.length;
   exportCareLogButton.disabled = isEmpty;
   if (isEmpty) {
-    exportStatus.textContent = "Log a feeding or diaper change to enable export.";
+    exportStatus.textContent = "Log a feeding, diaper change, or head position to enable export.";
   } else if (exportStatus.textContent.startsWith("Log a feeding")) {
     exportStatus.textContent = "Export your complete care history.";
   }
@@ -472,13 +506,13 @@ function createCareLogFile() {
 }
 
 function openExportOptions() {
-  if (!feedingHistory.length && !diaperHistory.length) return;
+  if (!feedingHistory.length && !diaperHistory.length && !headPositionHistory.length) return;
   exportStatus.textContent = "Choose Google Sheets or a CSV download.";
   exportDialog.showModal();
 }
 
 async function exportCareLog() {
-  if (!feedingHistory.length && !diaperHistory.length) return;
+  if (!feedingHistory.length && !diaperHistory.length && !headPositionHistory.length) return;
   const file = createCareLogFile();
   exportGoogleSheetsButton.disabled = true;
   exportStatus.textContent = "Opening your phone's share menu…";
@@ -515,7 +549,7 @@ async function exportCareLog() {
 }
 
 function downloadCareLogCsv() {
-  if (!feedingHistory.length && !diaperHistory.length) return;
+  if (!feedingHistory.length && !diaperHistory.length && !headPositionHistory.length) return;
   downloadCareLog(createCareLogFile());
   exportDialog.close();
   exportStatus.textContent = "CSV backup downloaded to this device.";
@@ -580,8 +614,19 @@ function parseCareLogCsv(text) {
   for (const required of ["Date", "Time", "Event"]) {
     if (column(required) < 0) throw new Error("This does not look like a Nurture Day care-log CSV file.");
   }
-  const valueAt = (row, name) => String(row[column(name)] || "").trim();
-  const imported = { feedingHistory: [], feedingSessions: [], feedingDetails: {}, diaperHistory: [], diaperDetails: {} };
+  const valueAt = (row, name) => {
+    const index = column(name);
+    return index < 0 ? "" : String(row[index] || "").trim();
+  };
+  const imported = {
+    feedingHistory: [],
+    feedingSessions: [],
+    feedingDetails: {},
+    diaperHistory: [],
+    diaperDetails: {},
+    headPositionHistory: [],
+    headPositionDetails: {}
+  };
 
   rows.slice(1).forEach((row, rowIndex) => {
     const eventName = valueAt(row, "Event").toLowerCase();
@@ -622,18 +667,25 @@ function parseCareLogCsv(text) {
       const contents = valueAt(row, "Diaper contents").toLowerCase();
       const type = contents === "pee" ? "pee" : contents === "poo" ? "poo" : ["pee + poo", "pee and poo"].includes(contents) ? "both" : null;
       if (type) imported.diaperDetails[startedAt] = { type };
+    } else if (eventName === "head position") {
+      imported.headPositionHistory.push(startedAt);
+      const positionValue = valueAt(row, "Head position").toLowerCase();
+      const position = positionValue === "left" ? "left" : positionValue === "right" ? "right" : ["back", "center", "centered", "back / centered"].includes(positionValue) ? "back" : null;
+      if (position) imported.headPositionDetails[startedAt] = { position };
     }
   });
 
   imported.feedingHistory = [...new Set(imported.feedingHistory)].sort((a, b) => new Date(a) - new Date(b));
   imported.diaperHistory = [...new Set(imported.diaperHistory)].sort((a, b) => new Date(a) - new Date(b));
-  if (!imported.feedingHistory.length && !imported.diaperHistory.length) throw new Error("No feeding or diaper records were found in this CSV file.");
+  imported.headPositionHistory = [...new Set(imported.headPositionHistory)].sort((a, b) => new Date(a) - new Date(b));
+  if (!imported.feedingHistory.length && !imported.diaperHistory.length && !imported.headPositionHistory.length) throw new Error("No feeding, diaper, or head-position records were found in this CSV file.");
   return imported;
 }
 
 function mergeImportedCareLog(imported) {
   feedingHistory = [...new Set([...feedingHistory, ...imported.feedingHistory])].sort((a, b) => new Date(a) - new Date(b));
   diaperHistory = [...new Set([...diaperHistory, ...imported.diaperHistory])].sort((a, b) => new Date(a) - new Date(b));
+  headPositionHistory = [...new Set([...headPositionHistory, ...imported.headPositionHistory])].sort((a, b) => new Date(a) - new Date(b));
 
   const sessions = new Map(imported.feedingSessions.map(session => [session.startAt, session]));
   feedingSessions.forEach(session => {
@@ -646,6 +698,9 @@ function mergeImportedCareLog(imported) {
   });
   Object.entries(imported.diaperDetails).forEach(([changedAt, details]) => {
     diaperDetails[changedAt] = diaperDetails[changedAt] || details;
+  });
+  Object.entries(imported.headPositionDetails).forEach(([loggedAt, details]) => {
+    headPositionDetails[loggedAt] = headPositionDetails[loggedAt] || details;
   });
   lastFeeding = feedingHistory.length ? new Date(feedingHistory[feedingHistory.length - 1]) : null;
   lastAlarmedFor = null;
@@ -662,13 +717,14 @@ async function importCareLog(file) {
     const imported = parseCareLogCsv(await file.text());
     const feedingCount = imported.feedingHistory.length;
     const diaperCount = imported.diaperHistory.length;
-    const confirmed = window.confirm(`Restore ${feedingCount} ${feedingCount === 1 ? "feeding" : "feedings"} and ${diaperCount} ${diaperCount === 1 ? "diaper change" : "diaper changes"}? Existing records will be kept.`);
+    const headPositionCount = imported.headPositionHistory.length;
+    const confirmed = window.confirm(`Restore ${feedingCount} ${feedingCount === 1 ? "feeding" : "feedings"}, ${diaperCount} ${diaperCount === 1 ? "diaper change" : "diaper changes"}, and ${headPositionCount} head-position ${headPositionCount === 1 ? "log" : "logs"}? Existing records will be kept.`);
     if (!confirmed) {
       importStatus.textContent = "Restore canceled. Your records are unchanged.";
       return;
     }
     mergeImportedCareLog(imported);
-    importStatus.textContent = `Backup restored: ${feedingCount} ${feedingCount === 1 ? "feeding" : "feedings"} and ${diaperCount} ${diaperCount === 1 ? "diaper change" : "diaper changes"}.`;
+    importStatus.textContent = `Backup restored: ${feedingCount} ${feedingCount === 1 ? "feeding" : "feedings"}, ${diaperCount} ${diaperCount === 1 ? "diaper change" : "diaper changes"}, and ${headPositionCount} head-position ${headPositionCount === 1 ? "log" : "logs"}.`;
   } catch (error) {
     importStatus.textContent = error?.message || "Nurture Day couldn't read that CSV backup.";
   } finally {
@@ -828,6 +884,67 @@ function renderDiaperHistory() {
     });
     section.append(heading, list);
     diaperTimetable.append(section);
+  });
+}
+
+function renderHeadPositionHistory() {
+  const positions = headPositionHistory.map(value => new Date(value)).filter(date => !Number.isNaN(date.getTime())).sort((a, b) => b - a);
+  const todayKey = localDayKey(new Date());
+  const todayCount = positions.filter(date => localDayKey(date) === todayKey).length;
+  $("#head-position-count").textContent = todayCount;
+  $("#head-position-count-label").textContent = todayCount === 1 ? "log today" : "logs today";
+  const latestPosition = positions.length ? headPositionLabel(headPositionDetails[positions[0].toISOString()]?.position) : "";
+  $("#last-head-position").textContent = positions.length ? `Last position: ${latestPosition} · ${formatDateTime(positions[0])} · ${positions.length} total` : "No head positions logged yet";
+  $("#head-position-dialog-summary").textContent = `${todayCount} ${todayCount === 1 ? "log" : "logs"} today · ${positions.length} total`;
+  updateExportAvailability();
+  undoHeadPosition.disabled = positions.length === 0;
+  headPositionTimetable.replaceChildren();
+
+  if (!positions.length) {
+    const empty = document.createElement("p");
+    empty.className = "history-empty";
+    empty.textContent = "Your logged head positions will appear here.";
+    headPositionTimetable.append(empty);
+    return;
+  }
+
+  const groups = new Map();
+  positions.forEach((date, index) => {
+    const key = localDayKey(date);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({ date, olderPosition: positions[index + 1] || null, position: headPositionDetails[date.toISOString()]?.position || null });
+  });
+
+  groups.forEach((entries, key) => {
+    const section = document.createElement("section");
+    section.className = "timetable-day head-position-day";
+    const heading = document.createElement("h3");
+    heading.textContent = key === todayKey ? "Today" : new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric" }).format(entries[0].date);
+    const list = document.createElement("ol");
+    list.className = "timetable-list";
+    entries.forEach(({ date, olderPosition, position }) => {
+      const item = document.createElement("li");
+      item.className = "timetable-item";
+      const dot = document.createElement("span");
+      dot.className = "timetable-dot head-position-dot";
+      dot.setAttribute("aria-hidden", "true");
+      const time = document.createElement("time");
+      time.dateTime = date.toISOString();
+      time.textContent = formatTime(date);
+      const details = document.createElement("span");
+      details.className = "timetable-details";
+      const positionLabel = document.createElement("strong");
+      positionLabel.className = "head-position-label";
+      positionLabel.textContent = headPositionLabel(position);
+      const gap = document.createElement("span");
+      gap.className = "timetable-gap";
+      gap.textContent = olderPosition ? formatGap(date - olderPosition) : "First logged position";
+      details.append(positionLabel, gap);
+      item.append(dot, time, details);
+      list.append(item);
+    });
+    section.append(heading, list);
+    headPositionTimetable.append(section);
   });
 }
 
@@ -1053,6 +1170,28 @@ function undoLastDiaperChange() {
   $("#diaper-announcement").textContent = `Diaper change from ${formatTime(removed)} removed.`;
 }
 
+function logHeadPosition(date = new Date(), position = null) {
+  if (!["left", "right", "back"].includes(position)) return;
+  const loggedAt = date.toISOString();
+  headPositionHistory.push(loggedAt);
+  headPositionDetails[loggedAt] = { position };
+  headPositionHistory = [...new Set(headPositionHistory)].sort((a, b) => new Date(a) - new Date(b));
+  save();
+  renderHeadPositionHistory();
+  $("#head-position-announcement").textContent = `${headPositionLabel(position)} head position logged at ${formatTime(date)}.`;
+}
+
+function undoLastHeadPosition() {
+  if (!headPositionHistory.length) return;
+  const removedAt = headPositionHistory.pop();
+  const removedPosition = headPositionLabel(headPositionDetails[removedAt]?.position);
+  delete headPositionDetails[removedAt];
+  const removed = new Date(removedAt);
+  save();
+  renderHeadPositionHistory();
+  $("#head-position-announcement").textContent = `${removedPosition} head position from ${formatTime(removed)} removed.`;
+}
+
 function openTimeDialog() {
   editingExistingFeeding = feedingHistory.length > 0;
   const date = lastFeeding || new Date();
@@ -1140,6 +1279,25 @@ $("#view-diapers").addEventListener("click", () => {
 });
 $("#close-diaper-history").addEventListener("click", () => diaperHistoryDialog.close());
 $("#done-diaper-history").addEventListener("click", () => diaperHistoryDialog.close());
+$("#log-head-position").addEventListener("click", () => {
+  headPositionLogForm.reset();
+  headPositionLogDialog.showModal();
+});
+headPositionLogForm.addEventListener("submit", event => {
+  if (event.submitter?.value === "cancel") return;
+  event.preventDefault();
+  const position = new FormData(headPositionLogForm).get("head-position");
+  if (!["left", "right", "back"].includes(position)) return;
+  logHeadPosition(new Date(), position);
+  headPositionLogDialog.close();
+});
+undoHeadPosition.addEventListener("click", undoLastHeadPosition);
+$("#view-head-positions").addEventListener("click", () => {
+  renderHeadPositionHistory();
+  headPositionHistoryDialog.showModal();
+});
+$("#close-head-position-history").addEventListener("click", () => headPositionHistoryDialog.close());
+$("#done-head-position-history").addEventListener("click", () => headPositionHistoryDialog.close());
 $("#edit-time").addEventListener("click", openTimeDialog);
 $("#time-form").addEventListener("submit", (event) => {
   if (event.submitter?.value === "cancel") return;
@@ -1238,10 +1396,12 @@ applyTheme();
 render();
 renderHistory();
 renderDiaperHistory();
+renderHeadPositionHistory();
 updateAlarmUI();
 setInterval(render, 1000);
 setInterval(renderHistory, 60000);
 setInterval(renderDiaperHistory, 60000);
+setInterval(renderHeadPositionHistory, 60000);
 
 if (!window.NURTURE_NATIVE?.isNative && "serviceWorker" in navigator) {
   const controlledAtLoad = Boolean(navigator.serviceWorker.controller);

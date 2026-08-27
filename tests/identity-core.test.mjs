@@ -5,6 +5,7 @@ import {
   LEGACY_STORAGE_KEY,
   createLocalProfileId,
   friendlyCloudError,
+  hasCareData,
   isFirebaseConfigured,
   mergeCareStates,
   migrateLegacyState,
@@ -49,6 +50,7 @@ test("cloud and device care logs merge without losing either person's own events
   const firstFeed = "2026-08-20T17:00:00.000Z";
   const secondFeed = "2026-08-20T20:00:00.000Z";
   const diaper = "2026-08-20T18:30:00.000Z";
+  const headPosition = "2026-08-20T19:00:00.000Z";
   const merged = mergeCareStates({
     feedingHistory: [firstFeed],
     feedingSessions: [{ startAt: firstFeed, endAt: null }],
@@ -57,7 +59,9 @@ test("cloud and device care logs merge without losing either person's own events
     feedingHistory: [secondFeed],
     feedingSessions: [{ startAt: firstFeed, endAt: "2026-08-20T17:20:00.000Z" }],
     diaperHistory: [diaper],
-    diaperDetails: { [diaper]: { type: "pee" } }
+    diaperDetails: { [diaper]: { type: "pee" } },
+    headPositionHistory: [headPosition],
+    headPositionDetails: { [headPosition]: { position: "right" } }
   });
 
   assert.deepEqual(merged.feedingHistory, [firstFeed, secondFeed]);
@@ -65,12 +69,18 @@ test("cloud and device care logs merge without losing either person's own events
   assert.equal(merged.feedingSessions[0].endAt, "2026-08-20T17:20:00.000Z");
   assert.equal(merged.feedingDetails[firstFeed].kind, "planned");
   assert.equal(merged.diaperDetails[diaper].type, "pee");
+  assert.deepEqual(merged.headPositionHistory, [headPosition]);
+  assert.equal(merged.headPositionDetails[headPosition].position, "right");
 });
 
 test("new profiles default to dark without overriding an explicit light choice", () => {
   assert.equal(mergeCareStates({}, {}).darkMode, true);
   assert.equal(mergeCareStates({ darkMode: false }, {}).darkMode, false);
   assert.equal(mergeCareStates({ darkMode: true }, { darkMode: false }).darkMode, false);
+});
+
+test("a head-position-only profile counts as care data", () => {
+  assert.equal(hasCareData({ headPositionHistory: ["2026-08-20T19:00:00.000Z"] }), true);
 });
 
 test("Firebase connection requires the complete public web config", () => {

@@ -62,8 +62,9 @@ function loadApp(savedState, navigatorOverrides = {}) {
   return context;
 }
 
-test("care log CSV combines chronological feeding and diaper details", () => {
+test("care log CSV combines chronological feeding, diaper, and head-position details", () => {
   const diaperAt = "2026-08-20T17:00:00.000Z";
+  const headPositionAt = "2026-08-20T17:30:00.000Z";
   const feedingAt = "2026-08-20T18:00:00.000Z";
   const feedingEnd = "2026-08-20T18:42:30.000Z";
   const app = loadApp({
@@ -73,15 +74,19 @@ test("care log CSV combines chronological feeding and diaper details", () => {
       [feedingAt]: { kind: "top-off", milk: "formula", amount: 2.5, amountUnit: "oz", notes: "=SUM(1,2)" }
     },
     diaperHistory: [diaperAt],
-    diaperDetails: { [diaperAt]: { type: "both" } }
+    diaperDetails: { [diaperAt]: { type: "both" } },
+    headPositionHistory: [headPositionAt],
+    headPositionDetails: { [headPositionAt]: { position: "left" } }
   });
 
   const csv = app.buildCareLogCsv();
   assert.match(csv, /^"Date","Time","Event"/);
   assert.ok(csv.indexOf('"Diaper change"') < csv.indexOf('"Feeding"'));
+  assert.ok(csv.indexOf('"Head position"') < csv.indexOf('"Feeding"'));
   assert.match(csv, /"Top-off","Formula","2\.5","oz","Completed"/);
   assert.match(csv, /"42\.5","'=SUM\(1,2\)"/);
   assert.match(csv, /"Pee \+ poo"/);
+  assert.match(csv, /"Head position".*"Left"/);
 });
 
 test("care log CSV preserves an untracked feeding", () => {
@@ -108,6 +113,21 @@ test("a Nurture CSV backup restores feeding details, sessions, and diapers", () 
   assert.deepEqual({ ...restored.feedingDetails[feedingAt] }, { kind: "top-off", milk: "formula", amount: 90, amountUnit: "ml", notes: 'A "small" top-off' });
   assert.ok(restored.feedingSessions[0].endAt);
   assert.equal(restored.diaperDetails[restored.diaperHistory[0]].type, "both");
+});
+
+test("a Nurture CSV backup restores head positions and accepts centered as back", () => {
+  const app = loadApp({});
+  const csv = [
+    '"Date","Time","Event","Feeding type","Milk type","Amount","Amount unit","Session status","End date","End time","Duration (minutes)","Notes","Diaper contents","Head position"',
+    '"2026-08-20","12:30","Head position","","","","","","","","","","","Left"',
+    '"2026-08-20","13:15","Head position","","","","","","","","","","","Centered"'
+  ].join("\r\n");
+
+  const restored = app.parseCareLogCsv(csv);
+
+  assert.equal(restored.headPositionHistory.length, 2);
+  assert.equal(restored.headPositionDetails[restored.headPositionHistory[0]].position, "left");
+  assert.equal(restored.headPositionDetails[restored.headPositionHistory[1]].position, "back");
 });
 
 test("restoring the same CSV deduplicates its event timestamps", () => {

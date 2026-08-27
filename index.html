@@ -41,7 +41,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=27" />
+    <link rel="stylesheet" href="styles.css?v=31" />
   </head>
   <body>
     <div id="auth-gate" class="auth-gate">
@@ -166,6 +166,27 @@
           <button id="view-diapers" type="button">View history <span aria-hidden="true">→</span></button>
         </div>
         <p id="diaper-announcement" class="sr-only" aria-live="polite"></p>
+      </section>
+
+      <section class="head-position-card" aria-labelledby="head-position-title">
+        <div class="head-position-copy">
+          <p class="eyebrow">REST LOG</p>
+          <h2 id="head-position-title">Head position</h2>
+          <p id="last-head-position">No head positions logged yet</p>
+        </div>
+        <div class="head-position-count-wrap" aria-label="Head positions logged today">
+          <strong id="head-position-count">0</strong>
+          <span id="head-position-count-label">logs today</span>
+        </div>
+        <button id="log-head-position" class="head-position-log-button" type="button">
+          <span aria-hidden="true">＋</span>
+          Log head position
+        </button>
+        <div class="head-position-actions">
+          <button id="undo-head-position" type="button" disabled>Undo last</button>
+          <button id="view-head-positions" type="button">View history <span aria-hidden="true">→</span></button>
+        </div>
+        <p id="head-position-announcement" class="sr-only" aria-live="polite"></p>
       </section>
 
       <section class="alarm-card" aria-labelledby="alarm-title">
@@ -347,6 +368,35 @@
       </div>
     </dialog>
 
+    <dialog id="head-position-log-dialog" class="time-dialog head-position-log-dialog">
+      <form method="dialog" id="head-position-log-form">
+        <button class="close-dialog" value="cancel" aria-label="Close">×</button>
+        <p class="eyebrow">LOG HEAD POSITION</p>
+        <h2>Which way is baby's head turned?</h2>
+        <fieldset>
+          <legend class="sr-only">Head direction</legend>
+          <div class="detail-options head-position-options">
+            <label class="detail-choice"><input type="radio" name="head-position" value="left" required /><span>Left</span></label>
+            <label class="detail-choice"><input type="radio" name="head-position" value="back" /><span>Back / centered</span></label>
+            <label class="detail-choice"><input type="radio" name="head-position" value="right" /><span>Right</span></label>
+          </div>
+        </fieldset>
+        <p class="head-position-safety">For safe sleep, place baby on their back and follow your pediatrician's guidance. This records head direction only.</p>
+        <button class="dialog-save" value="default">Log head position</button>
+      </form>
+    </dialog>
+
+    <dialog id="head-position-history-dialog" class="time-dialog history-dialog">
+      <div class="history-dialog-content">
+        <button id="close-head-position-history" class="close-dialog" type="button" aria-label="Close">×</button>
+        <p class="eyebrow">REST HISTORY</p>
+        <h2>Head positions</h2>
+        <p id="head-position-dialog-summary" class="history-dialog-summary"></p>
+        <div id="head-position-timetable" class="feeding-timetable"></div>
+        <button id="done-head-position-history" class="dialog-save" type="button">Done</button>
+      </div>
+    </dialog>
+
     <dialog id="account-dialog" class="time-dialog account-dialog">
       <div class="account-dialog-content">
         <button id="close-account" class="close-dialog" type="button" aria-label="Close">×</button>
@@ -375,7 +425,7 @@
         <button id="close-export" class="close-dialog" type="button" aria-label="Close export options">×</button>
         <p class="eyebrow">CARE HISTORY</p>
         <h2 id="export-sheet-title">Export your care log</h2>
-        <p class="export-sheet-copy">Choose where you want your feeding and diaper history to go.</p>
+        <p class="export-sheet-copy">Choose where you want your feeding, diaper, and head-position history to go.</p>
         <button id="export-google-sheets" class="export-option" type="button">
           <span class="export-option-icon sheets-icon" aria-hidden="true">▦</span>
           <span><strong>Export to Google Sheets</strong><small>Choose Sheets from your phone's share menu</small></span>
@@ -393,6 +443,6 @@
     <script src="push-config.js?v=27"></script>
     <script src="firebase-config.js?v=27"></script>
     <script type="module" src="native-bridge.js?v=27"></script>
-    <script type="module" src="auth.js?v=30"></script>
+    <script type="module" src="auth.js?v=31"></script>
   </body>
 </html>

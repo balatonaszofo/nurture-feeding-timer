@@ -48,3 +48,17 @@ test("export is a bottom-page sheet and CSV restore lives under the profile", ()
   assert.ok(importButton > accountDialog);
   assert.match(page, /id="export-dialog"[^]*id="export-google-sheets"[^]*id="download-care-log"/);
 });
+
+test("head-position tracking offers left, centered, and right with history and safe-sleep context", () => {
+  const page = readFileSync(rootFile("index.html"), "utf8");
+  const app = readFileSync(rootFile("app.js"), "utf8");
+
+  assert.match(page, /id="log-head-position"/);
+  assert.match(page, /name="head-position" value="left"/);
+  assert.match(page, /name="head-position" value="back"/);
+  assert.match(page, /name="head-position" value="right"/);
+  assert.match(page, /place baby on their back[^]*records head direction only/i);
+  assert.match(page, /id="head-position-history-dialog"/);
+  assert.match(app, /headPositionHistory/);
+  assert.match(app, /headPositionDetails/);
+});

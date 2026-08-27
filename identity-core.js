@@ -86,6 +86,7 @@ export function mergeCareStates(primary = {}, secondary = {}) {
     ...(second.feedingHistory || []), second.lastFeeding
   ].filter(Boolean));
   const diaperHistory = validDates([...(first.diaperHistory || []), ...(second.diaperHistory || [])]);
+  const headPositionHistory = validDates([...(first.headPositionHistory || []), ...(second.headPositionHistory || [])]);
   const merged = {
     ...first,
     ...second,
@@ -96,6 +97,8 @@ export function mergeCareStates(primary = {}, secondary = {}) {
     feedingDetails: { ...(first.feedingDetails || {}), ...(second.feedingDetails || {}) },
     diaperHistory,
     diaperDetails: { ...(first.diaperDetails || {}), ...(second.diaperDetails || {}) },
+    headPositionHistory,
+    headPositionDetails: { ...(first.headPositionDetails || {}), ...(second.headPositionDetails || {}) },
     darkMode: typeof second.darkMode === "boolean"
       ? second.darkMode
       : typeof first.darkMode === "boolean" ? first.darkMode : true,
@@ -110,6 +113,7 @@ export function hasCareData(state) {
     state && (
       (Array.isArray(state.feedingHistory) && state.feedingHistory.length) ||
       (Array.isArray(state.diaperHistory) && state.diaperHistory.length) ||
+      (Array.isArray(state.headPositionHistory) && state.headPositionHistory.length) ||
       state.lastFeeding
     )
   );
