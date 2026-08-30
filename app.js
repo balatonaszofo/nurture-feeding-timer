@@ -522,7 +522,7 @@ function downloadCareLog(file) {
 
 function createCareLogFile() {
   const today = localDateValue(new Date());
-  return new File(["\ufeff", buildCareLogCsv()], `nurture-day-care-log-${today}.csv`, { type: "text/csv;charset=utf-8" });
+  return new File(["\ufeff", buildCareLogCsv()], `nurture-day-care-log-${today}.csv`, { type: "text/csv" });
 }
 
 function openExportOptions() {

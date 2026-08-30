@@ -182,6 +182,6 @@ test("export uses the phone share sheet when file sharing is supported", async (
 
   assert.equal(sharedPayload.files.length, 1);
   assert.match(sharedPayload.files[0].name, /^nurture-day-care-log-\d{4}-\d{2}-\d{2}\.csv$/);
-  assert.equal(sharedPayload.files[0].type, "text/csv;charset=utf-8");
+  assert.equal(sharedPayload.files[0].type, "text/csv");
   assert.match(await sharedPayload.files[0].text(), /"Feeding"/);
 });

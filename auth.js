@@ -219,7 +219,7 @@ async function openApp(identity, sourceState = {}) {
   trackNurtureEvent("nurture_app_opened", { access_mode: identity.kind === "google" ? "google" : "guest" });
   if (!appLoaded) {
     appLoaded = true;
-    await import("./app.js?v=32");
+    await import("./app.js?v=33");
   }
 }
 
