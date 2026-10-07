@@ -9,14 +9,18 @@
     "native:prepare": "node scripts/prepare-native.mjs",
     "native:sync": "npm run native:prepare && cap sync android",
     "native:open": "npm run native:sync && cap open android",
-    "native:build": "npm run native:sync && cd android && gradlew.bat assembleDebug"
+    "native:build": "npm run native:sync && cd android && gradlew.bat assembleDebug",
+    "content:build": "node scripts/build-content-calendar.mjs"
   },
   "dependencies": {
     "@capacitor-firebase/authentication": "^8.0.0",
     "@capacitor/android": "^8.0.0",
     "@capacitor/core": "^8.0.0",
     "@capacitor/local-notifications": "^8.0.0",
-    "firebase": "^12.0.0"
+    "firebase": "^12.0.0",
+    "lucide-react": "1.31.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.0.0",
